@@ -1,0 +1,17 @@
+<Run>
+<Par_MaxGenerations value='100000'/>
+<Par_GenCountBeforeRefresh value='50'/>
+<Par_IslandClusters value='4'/>
+<Par_MaxPopMembers value='50'/>
+<Par_Seed value='5'/>
+<Par_KeepEliteRatio value='0.05'/>
+<Par_KeepRandRatio value='0.02'/>
+<Par_MutateRatio value='0.1'/>
+<Par_CrossoverRatio value='0.4'/>
+<Par_TournamentSize value='10'/>
+<extra_start_energy value='5000'/>
+<extra_node_depth value='25'/>
+<extra_move_energy_cost value='10'/>
+<extra_say_energy_cost value='8'/>
+<extra_tick_energy_cost value='10'/>
+</Run>

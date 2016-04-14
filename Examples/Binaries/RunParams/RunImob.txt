@@ -1,0 +1,22 @@
+<Run>
+	<External>
+		<Par_MaxGenerations value="100000"/>
+		<Par_GenCountBeforeRefresh value="25"/>
+		<Par_IslandClusters value="1"/>
+	</External>
+	
+	<Internal>
+		<Par_MaxPopMembers value="50"/>
+		<Par_Seed value="2543"/>
+		<Par_KeepEliteRatio value="0.05"/>
+		<Par_KeepRandRatio value="0.02"/>
+		<Par_MutateRatio value="0.1"/>
+		<Par_CrossoverRatio value="0.4"/>
+		<Par_TournamentSize value="10"/>
+	</Internal>
+	
+	<Extra>
+		<extra_start_energy value="500"/>
+		<extra_node_depth value="15"/>
+	</Extra>
+</Run>

@@ -1,0 +1,23 @@
+<Run>
+	<External>
+		<Par_MaxGenerations value="1000"/>
+		<Par_GenCountBeforeRefresh value="5"/>
+		<Par_IslandClusters value="4"/>
+	</External>
+	
+	<Internal>
+		<Par_MaxPopMembers value="100"/>
+		<Par_Seed value="257"/>
+		<Par_KeepEliteRatio value="0.05"/>
+		<Par_KeepRandRatio value="0.02"/>
+		<Par_MutateRatio value="0.1"/>
+		<Par_CrossoverRatio value="0.4"/>
+		<Par_TournamentSize value="30"/>
+	</Internal>
+	
+	<Extra>
+		<extra_image_size value="100"/>
+		<extra_tri_count value="50"/>
+		<extra_accuracy value="2"/>
+	</Extra>
+</Run>

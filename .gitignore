@@ -234,3 +234,10 @@ _Pvt_Extensions
 
 # FAKE - F# Make
 .fake/
+
+Examples/Binaries/*.exe
+Examples/Binaries/*.config
+Examples/Binaries/*.pdb
+Examples/Binaries/*.dll
+Examples/Binaries/*.manifest
+SharpGenetics/SharpGenetics.VC.db
