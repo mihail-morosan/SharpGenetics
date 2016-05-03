@@ -166,7 +166,7 @@ namespace SharpGenetics.BaseClasses
                 return 0;
             foreach(T member in _currentMembers)
             {
-                ret += member.CalculateFitness(_tests.ToArray());
+                ret += member.CalculateFitness(this.GenerationsRun, _tests.ToArray());
             }
             ret = ret / _currentMembers.Count;
             return ret;
@@ -244,7 +244,7 @@ namespace SharpGenetics.BaseClasses
                 {
                     try
                     {
-                        _currentMembers[(int)threadContext].CalculateFitness(_tests.ToArray());
+                        _currentMembers[(int)threadContext].CalculateFitness(this.GenerationsRun, _tests.ToArray());
                     }
                     catch (Exception e)
                     {
@@ -261,7 +261,7 @@ namespace SharpGenetics.BaseClasses
                 e.WaitOne();
             //End threaded fitness calculation
 
-            _currentMembers.Sort((m1, m2) => m1.CalculateFitness(_tests.ToArray()).CompareTo(m2.CalculateFitness(_tests.ToArray())));
+            _currentMembers.Sort((m1, m2) => m1.CalculateFitness(this.GenerationsRun, _tests.ToArray()).CompareTo(m2.CalculateFitness(this.GenerationsRun, _tests.ToArray())));
         }
 
         /// <summary>
@@ -360,8 +360,8 @@ namespace SharpGenetics.BaseClasses
             T BestMember = Tournament[0];
             for(int i=1;i<TournamentSize;i++)
             {
-                double Fit = Tournament[i].CalculateFitness(_tests.ToArray());
-                if(Tournament[i].CalculateFitness(_tests.ToArray()) < BestMember.CalculateFitness(_tests.ToArray()))
+                double Fit = Tournament[i].CalculateFitness(this.GenerationsRun, _tests.ToArray());
+                if(Tournament[i].CalculateFitness(this.GenerationsRun, _tests.ToArray()) < BestMember.CalculateFitness(this.GenerationsRun, _tests.ToArray()))
                 {
                     BestMember = Tournament[i];
                 }

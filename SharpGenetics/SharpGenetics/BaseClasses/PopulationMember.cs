@@ -50,7 +50,7 @@ namespace SharpGenetics.BaseClasses
         }
     }
 
-    public interface PopulationMember
+    /*public interface PopulationMember
     {
         double CalculateFitness<T,Y>(params GenericTest<T,Y>[] values);
 
@@ -63,5 +63,36 @@ namespace SharpGenetics.BaseClasses
         void SetRandomGenerator(CRandom rand);
 
         PopulationMember Clone();
+    }*/
+
+    [DataContractAttribute]
+    public abstract class PopulationMember
+    {
+        public abstract double CalculateFitness<T, Y>(int CurrentGeneration, params GenericTest<T, Y>[] values);
+
+        public abstract T Crossover<T>(T b) where T : PopulationMember;
+
+        public abstract T Mutate<T>() where T : PopulationMember;
+
+        public abstract PopulationMember Clone();
+
+        [DataMember]
+        public CRandom rand;
+
+        [DataMember]
+        public int CreatedAtGeneration = 0;
+
+        [DataMember]
+        public int UpdatedAtGeneration = 0;
+
+        public CRandom GetRandomGenerator()
+        {
+            return rand;
+        }
+
+        public void SetRandomGenerator(CRandom rand)
+        {
+            this.rand = rand;
+        }
     }
 }

@@ -164,7 +164,7 @@ namespace SharpGenetics.BaseClasses
                 if ((RefreshGenCount > 0) && (CurrentGen % RefreshGenCount == 0))
                     foreach (PopulationManager<T, InputT, OutputT> pop in Populations)
                     {
-                        if (pop.GetTopXMembers(1)[0].CalculateFitness(tests.ToArray()) < 0.000001)
+                        if (pop.GetTopXMembers(1)[0].CalculateFitness(CurrentGen, tests.ToArray()) < 0.000001)
                         {
                             Completed = true;
                         }
@@ -203,9 +203,9 @@ namespace SharpGenetics.BaseClasses
 
                         /*double tempFit = pop.GetAverageFitness();*/
 
-                        if (pop.GetMember(0).CalculateFitness<InputT, OutputT>(tests.ToArray()) >= worstFitness)
+                        if (pop.GetMember(0).CalculateFitness<InputT, OutputT>(CurrentGen, tests.ToArray()) >= worstFitness)
                         {
-                            worstFitness = pop.GetMember(0).CalculateFitness<InputT, OutputT>(tests.ToArray());
+                            worstFitness = pop.GetMember(0).CalculateFitness<InputT, OutputT>(CurrentGen, tests.ToArray());
                             worstPop = pop;
                         }
                     }

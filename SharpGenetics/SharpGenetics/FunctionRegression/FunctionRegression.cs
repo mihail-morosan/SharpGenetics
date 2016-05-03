@@ -19,10 +19,7 @@ namespace SharpGenetics.FunctionRegression
     {
         [DataMember]
         public XNode rootNode;
-
-        [DataMember]
-        public CRandom rand;
-
+        
         [DataMember]
         public Dictionary<String, double> vars = new Dictionary<string, double>();
         [DataMember]
@@ -34,16 +31,6 @@ namespace SharpGenetics.FunctionRegression
         public RunParameters popParams;
         [DataMember]
         public String CreatedBy = "";
-
-        public CRandom GetRandomGenerator()
-        {
-            return rand;
-        }
-
-        public void SetRandomGenerator(CRandom rand)
-        {
-            this.rand = rand;
-        }
 
         public FunctionRegression(RunParameters _params, XNode root = null, CRandom rand = null)
         { 
@@ -109,7 +96,7 @@ namespace SharpGenetics.FunctionRegression
             return x;
         }
 
-        public virtual double CalculateFitness<T,Y>(params GenericTest<T,Y>[] values)
+        public override double CalculateFitness<T,Y>(int CurrentGeneration, params GenericTest<T,Y>[] values)
         {
             if (this.Fitness < 0)
             {
@@ -150,7 +137,7 @@ namespace SharpGenetics.FunctionRegression
             return this.Fitness;
         }
 
-        T BaseClasses.PopulationMember.Crossover<T>(T b)
+        public override T Crossover<T>(T b)
         {
             XNode root1, root2;
             root1 = this.rootNode;
@@ -194,7 +181,7 @@ namespace SharpGenetics.FunctionRegression
             return (T)ret;
         }
 
-        T BaseClasses.PopulationMember.Mutate<T>()
+        public override T Mutate<T>()
         {
             XNode root1;
             root1 = this.rootNode;
@@ -237,7 +224,7 @@ namespace SharpGenetics.FunctionRegression
             return (T)ret;
         }
 
-        public virtual PopulationMember Clone()
+        public override PopulationMember Clone()
         {
             FunctionRegression ret = new FunctionRegression(popParams, rootNode.Clone(), rand);
 
