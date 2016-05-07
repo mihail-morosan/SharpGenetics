@@ -241,3 +241,4 @@ Examples/Binaries/*.pdb
 Examples/Binaries/*.dll
 Examples/Binaries/*.manifest
 SharpGenetics/SharpGenetics.VC.db
+/Examples/Binaries/Troschuetz.Random.xml

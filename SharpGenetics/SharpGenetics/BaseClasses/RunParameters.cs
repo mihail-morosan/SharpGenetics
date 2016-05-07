@@ -32,7 +32,7 @@ namespace SharpGenetics.BaseClasses
             if (_parameters.ContainsKey(key))
             {
                 double t = 0;
-                if(Double.TryParse(""+_parameters[key], out t))
+                if(!key.Substring(0,6).Equals("string") && Double.TryParse(""+_parameters[key], out t))
                 {
                     return t;
                 }
