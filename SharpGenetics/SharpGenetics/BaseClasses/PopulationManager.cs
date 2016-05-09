@@ -68,6 +68,11 @@ namespace SharpGenetics.BaseClasses
             return (double)_parameters.GetParameter(key);
         }
 
+        public int GetNumberOfIndividuals()
+        {
+            return _currentMembers.Count;
+        }
+
         /// <summary>
         /// Manager constructor. Sets up default parameters.
         /// </summary>

@@ -33,10 +33,8 @@ namespace SharpGenetics.FunctionRegression
         public String CreatedBy = "";
 
         public FunctionRegression(RunParameters _params, XNode root = null, CRandom rand = null)
-        { 
-            popParams = _params;
-
-            Depth = (int)(double)popParams.GetParameter("extra_node_depth");
+        {
+            ReloadParameters(_params);
 
             rootNode = root;
 
@@ -246,6 +244,13 @@ namespace SharpGenetics.FunctionRegression
         public override bool Equals(object obj)
         {
             return this.ToString().Equals(((FunctionRegression)obj).ToString());
+        }
+
+        public override void ReloadParameters(RunParameters _params)
+        {
+            popParams = _params;
+
+            Depth = (int)(double)popParams.GetParameter("extra_node_depth");
         }
     }
 }

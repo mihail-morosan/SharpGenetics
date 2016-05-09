@@ -86,6 +86,17 @@ namespace SharpGenetics.BaseClasses
             Timer.Stop();
         }
 
+        public void ReloadParameters()
+        {
+            foreach(var Pop in Populations)
+            {
+                for(int i=0;i<Pop.GetNumberOfIndividuals();i++)
+                {
+                    Pop.GetMember(i).ReloadParameters(Parameters);
+                }
+            }
+        }
+
         /// <summary>
         /// Starts the run for a number of generations. -1 means it will run until it achieves a fitness of 0 or gets to MAXGENERATIONS. A value higher than 0 will mean it runs for
         /// GenerationsBeforePause generations before pausing 
