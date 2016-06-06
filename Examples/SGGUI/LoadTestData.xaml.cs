@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using SharpGenetics.BaseClasses;
 using SharpGenetics.FunctionRegression;
+using SharpGenetics.SelectionAlgorithms;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -169,9 +170,8 @@ namespace SGGUI
         {
             mw.RunManager = new GPRunManager<FunctionRegression, double, double>(RunParams, tests);
 
-
             mw.RunManager.InitRun();
-
+            
             mw.statusOfRuns.Content = "Run initialized";
 
             mw.frame.Content = new DoActualRun(mw);

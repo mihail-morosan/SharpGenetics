@@ -1,6 +1,7 @@
 ﻿using NCalc;
 using SharpGenetics.BaseClasses;
 using SharpGenetics.FunctionRegression;
+using SharpGenetics.SelectionAlgorithms;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

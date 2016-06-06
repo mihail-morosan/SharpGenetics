@@ -53,6 +53,7 @@
     <Compile Include="BaseClasses\PopulationManager.cs" />
     <Compile Include="BaseClasses\PopulationMember.cs" />
     <Compile Include="BaseClasses\RunParameters.cs" />
+    <Compile Include="SelectionAlgorithms\SelectionAlgorithm.cs" />
     <Compile Include="FunctionRegression\FunctionRegression.cs" />
     <Compile Include="FunctionRegression\XNodes.cs" />
     <Compile Include="Helpers\CryptoRandom.cs" />
@@ -60,6 +61,7 @@
     <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Helpers\ObservableDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SelectionAlgorithms\TournamentSelection.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

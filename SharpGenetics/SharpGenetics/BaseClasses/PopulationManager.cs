@@ -1,4 +1,5 @@
 ﻿using SharpGenetics.Logging;
+using SharpGenetics.SelectionAlgorithms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,14 +14,6 @@ namespace SharpGenetics.BaseClasses
     //[KnownType("GetKnownType")]
     public class PopulationManager<T, InputT, OutputT> where T : PopulationMember
     {
-        /*private static Type[] GetKnownType()
-        {
-            Type[] t = new Type[2];
-            t[0] = typeof(List<T>);
-            t[1] = typeof(HashSet<T>);
-            return t;
-        }*/
-
         [DataMember]
         public CRandom rand;
         [DataMember]
@@ -29,18 +22,18 @@ namespace SharpGenetics.BaseClasses
         public int GenerationsRun = -1;
 
         [DataMember]
-        //private ICollection<T> _currentMembers;
         private List<T> _currentMembers;
 
         [DataMember]
-        //private ICollection<T> _nextGeneration;
         private List<T> _nextGeneration;
 
         [DataMember]
         private List<GenericTest<InputT, OutputT>> _tests;
 
         [DataMember]
-        //private Dictionary<string, object> _parameters;
+        public SelectionAlgorithm SelectionAlgorithm;
+
+        [DataMember]
         private RunParameters _parameters;
 
         /// <summary>
@@ -50,11 +43,6 @@ namespace SharpGenetics.BaseClasses
         /// <param name="value">Value of the parameter</param>
         public void AddToParameters(string key, object value)
         {
-            /*if (!_parameters.ContainsKey(key))
-                _parameters.Add(key, value);
-            else
-                _parameters[key] = value;*/
-
             _parameters.AddToParameters(key, value);
         }
 
@@ -81,19 +69,10 @@ namespace SharpGenetics.BaseClasses
         /// <param name="ForceRandomLog">DEPRECATED</param>
         public PopulationManager(int RandomSeed = 0, RunParameters Parameters = null, bool AllowDuplicates = false, bool ForceRandomLog = false)
         {
-            /*if (!AllowDuplicates)
-            {
-                _currentMembers = new HashSet<T>();
-                _nextGeneration = new HashSet<T>();
-            }
-            else */
-            {
-                _currentMembers = new List<T>();
-                _nextGeneration = new List<T>();
-            }
+            _currentMembers = new List<T>();
+            _nextGeneration = new List<T>();
 
             _tests = new List<GenericTest<InputT, OutputT>>();
-            //_parameters = new Dictionary<string, object>();
 
             rand = new CRandom(RandomSeed, ForceRandomLog);
             RSeed = RandomSeed;
@@ -121,6 +100,11 @@ namespace SharpGenetics.BaseClasses
         public T GetMember(int index)
         {
             return _currentMembers.ElementAt(index);
+        }
+
+        public List<GenericTest<InputT, OutputT>> GetTests()
+        {
+            return _tests;
         }
 
         /// <summary>
@@ -337,11 +321,11 @@ namespace SharpGenetics.BaseClasses
         /// <param name="UseTournamentSelection">Whether to use tournament selection or not during member selection</param>
         public void RegenerateMembers(bool UseTournamentSelection = false)
         {
-            int TSize = UseTournamentSelection ? (int)GetParameter("Par_TournamentSize") : 0;
+            //int TSize = UseTournamentSelection ? (int)GetParameter("Par_TournamentSize") : 0;
 
-            GenerateMembersThroughCrossover((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_CrossoverRatio")), TSize);
+            GenerateMembersThroughCrossover((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_CrossoverRatio")));
 
-            GenerateMembersThroughMutation((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_MutateRatio")), TSize);
+            GenerateMembersThroughMutation((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_MutateRatio")));
 
             GenerateRandomMembers();
 
@@ -353,7 +337,7 @@ namespace SharpGenetics.BaseClasses
         /// </summary>
         /// <param name="TournamentSize">The size of the tournament</param>
         /// <returns></returns>
-        public T SelectMemberTournament(int TournamentSize)
+        /*public T SelectMemberTournament(int TournamentSize)
         {
             if(TournamentSize < 1 || _currentMembers.Count < 1)
                 return default(T);
@@ -373,7 +357,7 @@ namespace SharpGenetics.BaseClasses
             }
 
             return BestMember;
-        }
+        } */
 
         /// <summary>
         /// Generates random members until the population is full.
@@ -413,9 +397,9 @@ namespace SharpGenetics.BaseClasses
         /// </summary>
         /// <param name="count">Number of members to generate</param>
         /// <param name="TournamentSelection">Whether to use tournament selection or not</param>
-        public void GenerateMembersThroughCrossover(int count, int TournamentSelection = 0)
+        public void GenerateMembersThroughCrossover(int count)
         {
-            if ((_currentMembers.Count == 0 && TournamentSelection > 0) || (_nextGeneration.Count == 0 && TournamentSelection == 0))
+            if ((_currentMembers.Count == 0))// || (_nextGeneration.Count == 0 && TournamentSelection == 0))
                 return;
 
             int i = 0;
@@ -429,33 +413,13 @@ namespace SharpGenetics.BaseClasses
             do
             {
                 T m1, m2;
-                if (TournamentSelection == 0)
-                {
-                    m1 = _nextGeneration.ElementAt(rand.Next(_nextGeneration.Count));
 
-                    m2 = _nextGeneration.ElementAt(rand.Next(_nextGeneration.Count));
-                }
-                else
-                {
-                    m1 = SelectMemberTournament(TournamentSelection);
-                    m2 = SelectMemberTournament(TournamentSelection);
-                }
-
-                //Cross them over
-                if (_nextGeneration is HashSet<T>)
-                {
-                    //T res = m1.Crossover<T>(m2);
-                    //if (((HashSet<T>)_nextGeneration).Add(res))
-                    //    i++;
-                    //else
-                    {
-                    }
-                }
-                else
-                {
-                    _nextGeneration.Add(m1.Crossover<T>(m2));
-                    i++;
-                }
+                m1 = SelectionAlgorithm.Select(this, _currentMembers);
+                m2 = SelectionAlgorithm.Select(this, _currentMembers);
+                
+                _nextGeneration.Add(m1.Crossover<T>(m2));
+                i++;
+                
                 iteration++;
             } while (i < count && iteration < MaxPop * 10 && _nextGeneration.Count < MaxPop);
         }
@@ -465,9 +429,9 @@ namespace SharpGenetics.BaseClasses
         /// </summary>
         /// <param name="count">Number of members to generate</param>
         /// <param name="TournamentSelection">Whether to use tournament selection or not</param>
-        public void GenerateMembersThroughMutation(int count, int TournamentSelection = 0)
+        public void GenerateMembersThroughMutation(int count)
         {
-            if ((_currentMembers.Count == 0 && TournamentSelection > 0) || (_nextGeneration.Count == 0 && TournamentSelection == 0))
+            if ((_currentMembers.Count == 0))// || (_nextGeneration.Count == 0 && TournamentSelection == 0))
                 return;
 
             int i = 0;
@@ -477,31 +441,18 @@ namespace SharpGenetics.BaseClasses
 
             if (_nextGeneration.Count >= MaxPop)
                 return;
-
-
+            
             do
             {
                 //Pick random member A
                 T m1;
-                if (TournamentSelection == 0)
-                {
-                    m1 = _nextGeneration.ElementAt(rand.Next(_nextGeneration.Count));
-                }
-                else
-                {
-                    m1 = SelectMemberTournament(TournamentSelection);
-                }
 
-                if (_nextGeneration is HashSet<T>)
-                {
-                    //if (((HashSet<T>)_nextGeneration).Add(m1.Mutate<T>()))
-                    //    i++;
-                }
-                else
-                {
-                    _nextGeneration.Add(m1.Mutate<T>());
-                    i++;
-                }
+                //m1 = SelectMemberTournament(TournamentSelection);
+                m1 = SelectionAlgorithm.Select(this, _currentMembers);
+
+                _nextGeneration.Add(m1.Mutate<T>());
+                i++;
+
                 iteration++;
             } while (i < count && iteration < MaxPop * 10 && _nextGeneration.Count < MaxPop);
         }

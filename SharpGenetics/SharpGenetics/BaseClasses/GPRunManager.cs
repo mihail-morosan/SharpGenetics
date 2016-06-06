@@ -1,7 +1,10 @@
 ﻿using SharpGenetics.Logging;
+using SharpGenetics.SelectionAlgorithms;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Xml;
@@ -15,6 +18,7 @@ namespace SharpGenetics.BaseClasses
     /// <typeparam name="InputT">Input type it requires in tests</typeparam>
     /// <typeparam name="OutputT">Output type it requires in tests</typeparam>
     [DataContractAttribute]
+    [KnownType("GetKnownType")]
     public class GPRunManager<T, InputT, OutputT> where T : PopulationMember
     {
         [DataMember]
@@ -33,8 +37,32 @@ namespace SharpGenetics.BaseClasses
         [DataMember]
         public List<PopulationManager<T, InputT, OutputT>> Populations = new List<PopulationManager<T, InputT, OutputT>>();
 
-        //[DataMember]
-        //Dictionary<String, object> ExtraParams;
+        [DataMember]
+        private SelectionAlgorithm SelectionAlgorithm;
+
+        private static Type[] GetKnownType()
+        {
+            Type openGenericType = typeof(SelectionAlgorithm);
+            var res = new List<Type>();
+
+            foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                foreach(var x in assembly.GetTypes())
+                {
+                    var y = x.BaseType;
+
+                    if(!x.IsAbstract && !x.IsInterface && y != null)
+                    {
+                        if(openGenericType.GUID == y.GUID)
+                        {
+                            res.Add(x);
+                        }
+                    }
+                }
+            }
+
+            return res.ToArray();
+        }
 
         /// <summary>
         /// Default constructor for GPRunManager.
@@ -67,9 +95,16 @@ namespace SharpGenetics.BaseClasses
         /// <summary>
         /// Initializes the GPRunManager's populations. Automatically called by the constructor.
         /// </summary>
-        public void InitRun()
+        public void InitRun(SelectionAlgorithm SelectionAlgorithm = null)
         {
             Timer = Stopwatch.StartNew();
+
+            if(SelectionAlgorithm == null)
+            {
+                SelectionAlgorithm = new TournamentSelection((int)(double)Parameters.GetParameter("Par_TournamentSize"));
+            }
+
+            this.SelectionAlgorithm = SelectionAlgorithm;
 
             for (int i = 0; i < (int)(double)Parameters.GetParameter("Par_IslandClusters"); i++)
             {
@@ -81,6 +116,7 @@ namespace SharpGenetics.BaseClasses
                 Populations[i].SetTests(tests);
                 Populations[i].GenerateRandomMembers();
                 Populations[i].FinalizeGeneration();
+                Populations[i].SelectionAlgorithm = SelectionAlgorithm;
             }
 
             Timer.Stop();
@@ -200,6 +236,7 @@ namespace SharpGenetics.BaseClasses
                     PopulationManager<T, InputT, OutputT> NewPop = new PopulationManager<T, InputT, OutputT>(_rand, Parameters.Clone(), false);
 
                     NewPop.SetTests(tests);
+                    NewPop.SelectionAlgorithm = SelectionAlgorithm;
 
                     PopulationManager<T, InputT, OutputT> worstPop = null;
                     double worstFitness = 0;
