@@ -56,6 +56,11 @@ namespace SharpGenetics.BaseClasses
             return (double)_parameters.GetParameter(key);
         }
 
+        public RunParameters GetParameters()
+        {
+            return _parameters;
+        }
+
         public int GetNumberOfIndividuals()
         {
             return _currentMembers.Count;
@@ -247,7 +252,9 @@ namespace SharpGenetics.BaseClasses
             }
 
             foreach (var e in doneEvents)
+            {
                 e.WaitOne();
+            }
             //End threaded fitness calculation
 
             _currentMembers.Sort((m1, m2) => m1.CalculateFitness(this.GenerationsRun, _tests.ToArray()).CompareTo(m2.CalculateFitness(this.GenerationsRun, _tests.ToArray())));

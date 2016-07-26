@@ -27,7 +27,7 @@ namespace SharpGenetics.BaseClasses
         [DataMember]
         private Stopwatch Timer;
         [DataMember]
-        private CRandom mainRandom;
+        public CRandom mainRandom;
         [DataMember]
         private int CurrentGen = 0;
 
@@ -47,18 +47,21 @@ namespace SharpGenetics.BaseClasses
 
             foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                foreach(var x in assembly.GetTypes())
+                try
                 {
-                    var y = x.BaseType;
-
-                    if(!x.IsAbstract && !x.IsInterface && y != null)
+                    foreach (var x in assembly.GetTypes())
                     {
-                        if(openGenericType.GUID == y.GUID)
+                        var y = x.BaseType;
+
+                        if (!x.IsAbstract && !x.IsInterface && y != null)
                         {
-                            res.Add(x);
+                            if (openGenericType.GUID == y.GUID)
+                            {
+                                res.Add(x);
+                            }
                         }
                     }
-                }
+                } catch { }
             }
 
             return res.ToArray();
