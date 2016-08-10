@@ -16,7 +16,7 @@ namespace SharpGenetics.SelectionAlgorithms
         [DataMember]
         public int TournamentSize = 1;
 
-        public TournamentSelection(int TournamentSize = 1)
+        public TournamentSelection(int TournamentSize = 1, int RandomSeed = 0)
         {
             this.TournamentSize = TournamentSize;
         }

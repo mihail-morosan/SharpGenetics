@@ -11,4 +11,5 @@
 <Par_TournamentSize value='6'/>
 <extra_constant_max value="400"/>
 		<extra_node_depth value="7"/>
+		<string_SelectionAlgorithm value="SharpGenetics.SelectionAlgorithms.TournamentSelection"/>
 </Run>

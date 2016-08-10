@@ -37,8 +37,16 @@ namespace SharpGenetics.BaseClasses
                     return t;
                 }
                 return _parameters[key];
+            } else
+            {
+                if (!key.Substring(0, 6).Equals("string"))
+                {
+                    return 0;
+                } else
+                {
+                    return "";
+                }
             }
-            return 0;
         }
 
         public RunParameters Clone()

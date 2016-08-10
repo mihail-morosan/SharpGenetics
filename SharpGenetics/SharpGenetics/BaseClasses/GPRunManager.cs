@@ -72,11 +72,11 @@ namespace SharpGenetics.BaseClasses
         /// </summary>
         /// <param name="Filename">File to load parameters from</param>
         /// <param name="Tests">Tests to be used for calculating fitness of population members</param>
-        public GPRunManager(string Filename, List<GenericTest<InputT, OutputT>> Tests)
+        public GPRunManager(string Filename, List<GenericTest<InputT, OutputT>> Tests) : this(LoadParamsFromFile(Filename), Tests)
         {
-            Parameters = LoadParamsFromFile(Filename);
-            mainRandom = new CRandom((int)(double)Parameters.GetParameter("Par_Seed"));
-            SetTests(Tests);
+            //Parameters = LoadParamsFromFile(Filename);
+            //mainRandom = new CRandom((int)(double)Parameters.GetParameter("Par_Seed"));
+            //SetTests(Tests);
         }
 
         public GPRunManager(RunParameters Params, List<GenericTest<InputT, OutputT>> Tests)
@@ -84,6 +84,13 @@ namespace SharpGenetics.BaseClasses
             Parameters = Params;
             mainRandom = new CRandom((int)(double)Parameters.GetParameter("Par_Seed"));
             SetTests(Tests);
+
+            var SelAlg = (string)Parameters.GetParameter("string_SelectionAlgorithm");
+            if(SelAlg.Length < 1)
+            {
+                SelAlg = "SharpGenetics.SelectionAlgorithms.TournamentSelection";
+            }
+            SelectionAlgorithm = (SelectionAlgorithm)Activator.CreateInstance(Type.GetType(SelAlg), new object[] { (int)(double)Parameters.GetParameter("Par_TournamentSize"), mainRandom.Next() });
         }
 
         /// <summary>
@@ -98,16 +105,9 @@ namespace SharpGenetics.BaseClasses
         /// <summary>
         /// Initializes the GPRunManager's populations. Automatically called by the constructor.
         /// </summary>
-        public void InitRun(SelectionAlgorithm SelectionAlgorithm = null)
+        public void InitRun()
         {
             Timer = Stopwatch.StartNew();
-
-            if(SelectionAlgorithm == null)
-            {
-                SelectionAlgorithm = new TournamentSelection((int)(double)Parameters.GetParameter("Par_TournamentSize"));
-            }
-
-            this.SelectionAlgorithm = SelectionAlgorithm;
 
             for (int i = 0; i < (int)(double)Parameters.GetParameter("Par_IslandClusters"); i++)
             {
