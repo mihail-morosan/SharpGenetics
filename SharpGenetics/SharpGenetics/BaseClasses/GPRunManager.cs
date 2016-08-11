@@ -72,17 +72,17 @@ namespace SharpGenetics.BaseClasses
         /// </summary>
         /// <param name="Filename">File to load parameters from</param>
         /// <param name="Tests">Tests to be used for calculating fitness of population members</param>
-        public GPRunManager(string Filename, List<GenericTest<InputT, OutputT>> Tests) : this(LoadParamsFromFile(Filename), Tests)
+        public GPRunManager(string Filename, List<GenericTest<InputT, OutputT>> Tests, int RandomSeed = -1) : this(LoadParamsFromFile(Filename), Tests, RandomSeed)
         {
             //Parameters = LoadParamsFromFile(Filename);
             //mainRandom = new CRandom((int)(double)Parameters.GetParameter("Par_Seed"));
             //SetTests(Tests);
         }
 
-        public GPRunManager(RunParameters Params, List<GenericTest<InputT, OutputT>> Tests)
+        public GPRunManager(RunParameters Params, List<GenericTest<InputT, OutputT>> Tests, int RandomSeed = -1)
         {
             Parameters = Params;
-            mainRandom = new CRandom((int)(double)Parameters.GetParameter("Par_Seed"));
+            mainRandom = new CRandom(RandomSeed != -1 ? RandomSeed : (int)(double)Parameters.GetParameter("Par_Seed"));
             SetTests(Tests);
 
             var SelAlg = (string)Parameters.GetParameter("string_SelectionAlgorithm");
