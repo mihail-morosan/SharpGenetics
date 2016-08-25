@@ -88,9 +88,10 @@ namespace SharpGenetics.BaseClasses
             var SelAlg = (string)Parameters.GetParameter("string_SelectionAlgorithm");
             if(SelAlg.Length < 1)
             {
-                SelAlg = "SharpGenetics.SelectionAlgorithms.TournamentSelection";
+                SelAlg = "SharpGenetics.SelectionAlgorithms.TournamentSelection,SharpGenetics";
             }
-            SelectionAlgorithm = (SelectionAlgorithm)Activator.CreateInstance(Type.GetType(SelAlg), new object[] { (int)(double)Parameters.GetParameter("Par_TournamentSize"), mainRandom.Next() });
+            
+            SelectionAlgorithm = (SelectionAlgorithm)Activator.CreateInstance(Type.GetType(SelAlg), new object[] { this.Parameters, mainRandom.Next() });
         }
 
         /// <summary>
