@@ -230,9 +230,26 @@ namespace SharpGenetics.BaseClasses
             //Threaded fitness calculation
             ManualResetEvent[] doneEvents = new ManualResetEvent[_currentMembers.Count];
 
+            int MaxThreads = 16;
+
             for (int i = 0; i < _currentMembers.Count; i++)
             {
                 doneEvents[i] = new ManualResetEvent(false);
+
+                int ClosedThreads = 0;
+                do
+                {
+                    ClosedThreads = 0;
+
+                    for (int y = 0; y < i; y++)
+                    {
+                        if (!doneEvents[y].WaitOne(0))
+                        {
+                            ClosedThreads++;
+                        }
+                    }
+                    Thread.Sleep(300);
+                } while (ClosedThreads >= MaxThreads);
 
                 ThreadPool.QueueUserWorkItem((threadContext) =>
                 {
