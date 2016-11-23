@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.BaseClasses
 {
-    [DataContractAttribute]
+    [DataContract]
     public abstract class FitnessComparer
     {
-        public abstract int Compare(PopulationMember A, PopulationMember B);
+        public abstract int Compare<T>(T A, T B) where T : PopulationMember;
     }
 }

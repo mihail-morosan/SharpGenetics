@@ -43,6 +43,7 @@ namespace SharpGenetics.BaseClasses
         private static Type[] GetKnownType()
         {
             Type openGenericType = typeof(SelectionAlgorithm);
+            Type openGenericType2 = typeof(FitnessComparer);
             var res = new List<Type>();
 
             foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
@@ -55,7 +56,7 @@ namespace SharpGenetics.BaseClasses
 
                         if (!x.IsAbstract && !x.IsInterface && y != null)
                         {
-                            if (openGenericType.GUID == y.GUID)
+                            if (openGenericType.GUID == y.GUID || openGenericType2.GUID == y.GUID)
                             {
                                 res.Add(x);
                             }
