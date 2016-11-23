@@ -57,6 +57,8 @@ namespace SharpGenetics.BaseClasses
 
         public abstract double CalculateFitness<T, Y>(int CurrentGeneration, params GenericTest<T, Y>[] values);
 
+        public abstract double GetFitness();
+
         public abstract T Crossover<T>(T b) where T : PopulationMember;
 
         public abstract T Mutate<T>() where T : PopulationMember;

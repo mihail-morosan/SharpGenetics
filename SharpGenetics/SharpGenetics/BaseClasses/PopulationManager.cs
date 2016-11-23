@@ -36,6 +36,9 @@ namespace SharpGenetics.BaseClasses
         [DataMember]
         private RunParameters _parameters;
 
+        [DataMember]
+        private FitnessComparer FitnessComparer = null;
+
         /// <summary>
         /// Adds a key/value pair of parameters to the parameter dictionary.
         /// </summary>
@@ -94,6 +97,18 @@ namespace SharpGenetics.BaseClasses
                 AddToParameters("Par_CrossoverRatio", 0.4);
                 AddToParameters("Par_MaxPopMembers", 1000);
                 AddToParameters("Par_TournamentSize", 20);
+            }
+
+            string FC = (string)_parameters.GetParameter("string_FitnessComparer");
+
+            if (FC == "")
+            {
+                FC = "SharpGenetics.BaseClasses.DefaultDoubleFitnessComparer,SharpGenetics";
+            }
+
+            if(FitnessComparer == null)
+            {
+                FitnessComparer = (FitnessComparer)Activator.CreateInstance(Type.GetType(FC), new object[] { });
             }
         }
 
@@ -248,7 +263,8 @@ namespace SharpGenetics.BaseClasses
                             ClosedThreads++;
                         }
                     }
-                    Thread.Sleep(300);
+                    if(ClosedThreads >= MaxThreads)
+                        Thread.Sleep(300);
                 } while (ClosedThreads >= MaxThreads);
 
                 ThreadPool.QueueUserWorkItem((threadContext) =>
@@ -274,7 +290,8 @@ namespace SharpGenetics.BaseClasses
             }
             //End threaded fitness calculation
 
-            _currentMembers.Sort((m1, m2) => m1.CalculateFitness(this.GenerationsRun, _tests.ToArray()).CompareTo(m2.CalculateFitness(this.GenerationsRun, _tests.ToArray())));
+            _currentMembers.Sort((m1, m2) => FitnessComparer.Compare(m1,m2));
+            //_currentMembers.Sort((m1, m2) => m1.CalculateFitness(this.GenerationsRun, _tests.ToArray()).CompareTo(m2.CalculateFitness(this.GenerationsRun, _tests.ToArray())));
         }
 
         /// <summary>

@@ -94,6 +94,11 @@ namespace SharpGenetics.FunctionRegression
             return x;
         }
 
+        public override double GetFitness()
+        {
+            return this.Fitness;
+        }
+
         public override double CalculateFitness<T,Y>(int CurrentGeneration, params GenericTest<T,Y>[] values)
         {
             if (this.Fitness < 0)

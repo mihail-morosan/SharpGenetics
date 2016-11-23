@@ -49,6 +49,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BaseClasses\DefaultDoubleFitnessComparer.cs" />
+    <Compile Include="BaseClasses\FitnessComparer.cs" />
     <Compile Include="BaseClasses\GPRunManager.cs" />
     <Compile Include="BaseClasses\PopulationManager.cs" />
     <Compile Include="BaseClasses\PopulationMember.cs" />
