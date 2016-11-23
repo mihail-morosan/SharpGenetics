@@ -74,6 +74,9 @@ namespace SharpGenetics.BaseClasses
         [DataMember]
         public int UpdatedAtGeneration = 0;
 
+        [DataMember]
+        public RunParameters popParams;
+
         public CRandom GetRandomGenerator()
         {
             return rand;
