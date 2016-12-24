@@ -133,7 +133,7 @@ namespace SharpGenetics.BaseClasses
             {
                 for(int i=0;i<Pop.GetNumberOfIndividuals();i++)
                 {
-                    Pop.GetMember(i).ReloadParameters(Parameters);
+                    Pop.GetMember(i).ReloadParameters(Pop);
                 }
             }
         }

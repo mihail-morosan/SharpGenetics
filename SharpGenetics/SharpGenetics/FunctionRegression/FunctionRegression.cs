@@ -27,15 +27,14 @@ namespace SharpGenetics.FunctionRegression
         [DataMember]
         int Depth = 1;
         [DataMember]
-        //Dictionary<string, object> popParams;
-        public RunParameters popParams;
-        [DataMember]
         public String CreatedBy = "";
+        
+        PopulationManager<FunctionRegression, double, double> Manager;
 
-        public FunctionRegression(RunParameters _params, XNode root = null, CRandom rand = null)
+        public FunctionRegression(PopulationManager<FunctionRegression,double,double> Manager, XNode root = null, CRandom rand = null)
         {
-            ReloadParameters(_params);
-
+            ReloadParameters(Manager);
+            
             rootNode = root;
 
             this.rand = rand;
@@ -63,15 +62,15 @@ namespace SharpGenetics.FunctionRegression
 
             XNode x = null;
 
-            if(val == 0 || (val == 1 && (int)(double)popParams.GetParameter("InputCount") == 0)) // Nr
+            if(val == 0 || (val == 1 && (int)(double)Manager.GetParameters().GetParameter("InputCount") == 0)) // Nr
             {
-                x = new NrNode(rand.Next((int)(double)popParams.GetParameter("extra_constant_max")), parent);
+                x = new NrNode(rand.Next((int)(double)Manager.GetParameters().GetParameter("extra_constant_max")), parent);
             }
 
-            if(val == 1 && (int)(double)popParams.GetParameter("InputCount") > 0) // Var
+            if(val == 1 && (int)(double)Manager.GetParameters().GetParameter("InputCount") > 0) // Var
             {
-                int inputVarToPick = rand.Next((int)(double)popParams.GetParameter("InputCount"));
-                string valueOfVar = (string)popParams.GetParameter("Input" + inputVarToPick);
+                int inputVarToPick = rand.Next((int)(double)Manager.GetParameters().GetParameter("InputCount"));
+                string valueOfVar = (string)Manager.GetParameters().GetParameter("Input" + inputVarToPick);
                 x = new VarNode(valueOfVar, parent);
             }
 
@@ -177,7 +176,7 @@ namespace SharpGenetics.FunctionRegression
             }
             
             //PopulationMember ret = new FunctionRegression(popParams, newRoot, rand);
-            PopulationMember ret = (T)Activator.CreateInstance(typeof(T), new object[] { popParams, newRoot, rand });
+            PopulationMember ret = (T)Activator.CreateInstance(typeof(T), new object[] { Manager, newRoot, rand });
 
             ((FunctionRegression)ret).CreatedBy = "Crossover";
 
@@ -196,7 +195,7 @@ namespace SharpGenetics.FunctionRegression
             XNode newRoot = root1.Clone();
             xa = newRoot.GetNthNode(m1);
 
-            int NewNodeMaxDepth = (int)(double)popParams.GetParameter("extra_node_depth") - xa.NodeDepth();
+            int NewNodeMaxDepth = (int)(double)Manager.GetParameters().GetParameter("extra_node_depth") - xa.NodeDepth();
 
             xb = GenerateTree(NewNodeMaxDepth, xa.parent);
 
@@ -220,7 +219,7 @@ namespace SharpGenetics.FunctionRegression
 
             //PopulationMember ret = new FunctionRegression(popParams, newRoot, rand);
 
-            PopulationMember ret = (T)Activator.CreateInstance(typeof(T), new object[] { popParams, newRoot, rand });
+            PopulationMember ret = (T)Activator.CreateInstance(typeof(T), new object[] { Manager, newRoot, rand });
 
             ((FunctionRegression)ret).CreatedBy = "Mutation";
 
@@ -229,7 +228,7 @@ namespace SharpGenetics.FunctionRegression
 
         public override PopulationMember Clone()
         {
-            FunctionRegression ret = new FunctionRegression(popParams, rootNode.Clone(), rand);
+            FunctionRegression ret = new FunctionRegression(Manager, rootNode.Clone(), rand);
 
             return ret;
         }
@@ -251,11 +250,15 @@ namespace SharpGenetics.FunctionRegression
             return this.ToString().Equals(((FunctionRegression)obj).ToString());
         }
 
-        public override void ReloadParameters(RunParameters _params)
+        public override void ReloadParameters<T, I, O>(PopulationManager<T, I, O> Manager)
         {
-            popParams = _params;
+            this.Manager = Manager as PopulationManager<FunctionRegression, double, double>;
+            Depth = (int)(double)Manager.GetParameters().GetParameter("extra_node_depth");
+        }
 
-            Depth = (int)(double)popParams.GetParameter("extra_node_depth");
+        public override PopulationManager<T, I, O> GetParentManager<T, I, O>()
+        {
+            return Manager as PopulationManager<T,I,O>;
         }
     }
 }
