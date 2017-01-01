@@ -1,4 +1,5 @@
 ﻿using SharpGenetics.Logging;
+using SharpGenetics.Predictor;
 using SharpGenetics.SelectionAlgorithms;
 using System;
 using System.Collections.Generic;
@@ -15,11 +16,15 @@ namespace SharpGenetics.BaseClasses
     public class PopulationManager<T, InputT, OutputT> where T : PopulationMember
     {
         [DataMember]
+        public NeuralNetworkPredictor Predictor;
+        [DataMember]
         public CRandom rand;
         [DataMember]
         public int RSeed;
         [DataMember]
         public int GenerationsRun = -1;
+        [DataMember]
+        public bool UsePredictor = false;
 
         [DataMember]
         private List<T> _currentMembers;
@@ -264,7 +269,7 @@ namespace SharpGenetics.BaseClasses
                         }
                     }
                     if(ClosedThreads >= MaxThreads)
-                        Thread.Sleep(300);
+                        Thread.Sleep(10);
                 } while (ClosedThreads >= MaxThreads);
 
                 ThreadPool.QueueUserWorkItem((threadContext) =>
@@ -426,7 +431,7 @@ namespace SharpGenetics.BaseClasses
                 }
                 else
                 {
-                    _nextGeneration.Add((T)Activator.CreateInstance(typeof(T), new object[] { _parameters, null, rand }));
+                    _nextGeneration.Add((T)Activator.CreateInstance(typeof(T), new object[] { this, null, rand }));
                     i++;
                 }
                 iteration++;

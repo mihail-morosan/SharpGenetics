@@ -53,7 +53,7 @@ namespace SharpGenetics.BaseClasses
     [DataContractAttribute]
     public abstract class PopulationMember
     {
-        public abstract void ReloadParameters(RunParameters _params);
+        public abstract void ReloadParameters<T,I,O>(PopulationManager<T, I, O> Manager) where T:PopulationMember;
 
         public abstract double CalculateFitness<T, Y>(int CurrentGeneration, params GenericTest<T, Y>[] values);
 
@@ -73,9 +73,8 @@ namespace SharpGenetics.BaseClasses
 
         [DataMember]
         public int UpdatedAtGeneration = 0;
-
-        [DataMember]
-        public RunParameters popParams;
+        
+        public abstract PopulationManager<T, I, O> GetParentManager<T,I,O>() where T: PopulationMember;
 
         public CRandom GetRandomGenerator()
         {
