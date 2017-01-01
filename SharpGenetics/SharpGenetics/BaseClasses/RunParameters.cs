@@ -41,7 +41,7 @@ namespace SharpGenetics.BaseClasses
             {
                 if (!key.Substring(0, 6).Equals("string"))
                 {
-                    return 0;
+                    return 0.0d;
                 } else
                 {
                     return "";

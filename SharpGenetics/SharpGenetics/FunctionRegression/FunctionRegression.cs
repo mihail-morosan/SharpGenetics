@@ -27,9 +27,6 @@ namespace SharpGenetics.FunctionRegression
         [DataMember]
         int Depth = 1;
         [DataMember]
-        //Dictionary<string, object> popParams;
-        public RunParameters popParams;
-        [DataMember]
         public String CreatedBy = "";
 
         public FunctionRegression(RunParameters _params, XNode root = null, CRandom rand = null)
