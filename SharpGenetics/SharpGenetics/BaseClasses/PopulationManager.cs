@@ -1,4 +1,5 @@
-﻿using SharpGenetics.Logging;
+﻿using Newtonsoft.Json;
+using SharpGenetics.Logging;
 using SharpGenetics.Predictor;
 using SharpGenetics.SelectionAlgorithms;
 using System;
@@ -11,7 +12,8 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.BaseClasses
 {
-    [DataContractAttribute]
+    [DataContractAttribute(IsReference = true)]
+    [JsonObject(IsReference = true)]
     //[KnownType("GetKnownType")]
     public class PopulationManager<T, InputT, OutputT> where T : PopulationMember
     {

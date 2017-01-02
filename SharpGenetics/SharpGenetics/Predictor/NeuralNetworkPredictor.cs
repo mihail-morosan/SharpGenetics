@@ -19,17 +19,17 @@ namespace SharpGenetics.Predictor
             Outputs = new List<double>();
         }
 
-        public InputOutputPair(List<double> In, List<double> Out)
+        public InputOutputPair(List<double> In, List<double> Out, double MinVal, double MinOutput, double MaxVal, double MaxOutputVal)
         {
             Inputs = In;
             Outputs = Out;
             for (int i = 0; i < Inputs.Count; i++)
             {
-                Inputs[i] /= NeuralNetworkPredictor.MaxVal;
+                Inputs[i] = (Inputs[i] - MinVal) / (MaxVal - MinVal);
             }
             for (int i = 0; i < Outputs.Count; i++)
             {
-                Outputs[i] /= NeuralNetworkPredictor.MaxOutputVal;
+                Outputs[i] = (Outputs[i] - MinOutput) / (MaxOutputVal - MinOutput);
             }
         }
 
@@ -46,36 +46,34 @@ namespace SharpGenetics.Predictor
         public static readonly object NetworkLock = new object();
 
         // Neural network stuff
-        public static int HiddenLayer = 10;
-        public static int OutputLayer = 3;
-        public static int MaxTrainingData = 100;
-
-        public static int MaxVal = 20000;
-        public static int MinVal = 0;
-
-        public static int MaxOutputVal = 20000;
-        public static int MinOutputVal = 0;
-
-        public static int MaxThresholdVal = 2000;
-
-        public static DeepBeliefNetwork Network = null;
-
-        public static List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
-
-        List<double> NetworkSerializeValue;
+        [DataMember]
+        public int InputLayer = 1;
+        [DataMember]
+        public int HiddenLayer = 10;
+        [DataMember]
+        public int OutputLayer = 3;
+        [DataMember]
+        public int MaxTrainingData = 100;
 
         [DataMember]
-        public List<InputOutputPair> NetworkTrainingDataSerialize
-        {
-            get
-            {
-                return NetworkTrainingData;
-            }
-            set
-            {
-                NetworkTrainingData = value;
-            }
-        }
+        public double MaxVal = 20000;
+        [DataMember]
+        public double MinVal = 0;
+
+        [DataMember]
+        public double MaxOutputVal = 20000;
+        [DataMember]
+        public double MinOutputVal = 0;
+
+        [DataMember]
+        public double MaxThresholdVal = 2000;
+
+        public DeepBeliefNetwork Network = null;
+
+        [DataMember]
+        public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
+        
+        List<double> NetworkSerializeValue;
 
         [DataMember]
         public List<double> NetworkSerialize
@@ -104,72 +102,99 @@ namespace SharpGenetics.Predictor
             set { NetworkSerializeValue = value; }
         }
 
-        public static int Predictions = 0;
+        [DataMember]
+        public List<int> PredictionsByGeneration = new List<int>();
 
         [DataMember]
-        public int PredictionsSerialize { get { return Predictions; } set { Predictions = value; } }
-
-        public static double NetworkAccuracy = 0;
+        public int AcceptedPredictions = 0;
 
         [DataMember]
-        public double NetworkAccuracySerialize { get { return NetworkAccuracy; } set { NetworkAccuracy = value; } }
+        public List<int> AcceptedPredictionsByGeneration = new List<int>();
+
+        [DataMember]
+        public List<int> FalsePositivesByGeneration = new List<int>();
+
+        [DataMember]
+        public List<int> FalseNegativesByGeneration = new List<int>();
+
+        [DataMember]
+        public double NetworkAccuracy = 0;
 
         public void TrainNetwork()
         {
-            lock (NetworkLock)
+            if (NetworkTrainingData.Count < MaxTrainingData)
             {
-                if (NetworkTrainingData.Count < MaxTrainingData)
-                {
-                    NetworkAccuracy = 0;
-                    return;
-                }
-
-                double LearningRate = 0.1;
-                double WeightDecay = 0.001;
-
-                var teacher = new BackPropagationLearning(Network)
-                {
-                    LearningRate = LearningRate,
-                    Momentum = 0.5
-                };
-
-
-                double error = 0;
-
-                for (int i = 0; i < 20; i++)
-                {
-                    foreach (var In in NetworkTrainingData.Take(MaxTrainingData * 4 / 5))
-                    {
-                        error += teacher.Run(In.Inputs.ToArray(), In.Outputs.ToArray());
-                    }
-                }
-
-                error /= NetworkTrainingData.Count;
-
-
-                //TODO: change NetworkAccuracy here
-                //Test accuracy on training data (not optimal, but it is a rolling dataset)
-                double Diff = 0;
-                foreach (var In in NetworkTrainingData.Skip(MaxTrainingData * 4 / 5))
-                {
-                    var outputVal = Network.Compute(In.Inputs.ToArray());
-                    for (int i = 0; i < In.Outputs.Count; i++)
-                    {
-                        Diff += Math.Abs(In.Outputs[i] - outputVal[i]);
-                    }
-                }
-                NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData / 5 * OutputLayer) * MaxOutputVal / MaxThresholdVal);
-                //NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData * 3 / 5) * 10); // /300 * 20000 / 2000 (divided by 100 samples and 3 vals per sample, multiplied by maxval, divided by what I want the base error to be)
+                NetworkAccuracy = 0;
+                return;
             }
+
+            double LearningRate = 0.1;
+            double WeightDecay = 0.001;
+
+            var teacher = new BackPropagationLearning(Network)
+            {
+                LearningRate = LearningRate,
+                Momentum = 0.5
+            };
+
+
+            double error = 0;
+
+            for (int i = 0; i < 1; i++)
+            {
+                foreach (var In in NetworkTrainingData.Take(MaxTrainingData * 4 / 5))
+                {
+                    error += teacher.Run(In.Inputs.ToArray(), In.Outputs.ToArray());
+                }
+            }
+
+            error /= NetworkTrainingData.Count;
+
+
+            //TODO: change NetworkAccuracy here
+            //Test accuracy on training data (not optimal, but it is a rolling dataset)
+            double Diff = 0;
+            foreach (var In in NetworkTrainingData.Skip(MaxTrainingData * 4 / 5))
+            {
+                var outputVal = Network.Compute(In.Inputs.ToArray());
+                for (int i = 0; i < In.Outputs.Count; i++)
+                {
+                    Diff += Math.Abs(In.Outputs[i] - outputVal[i]);
+                }
+            }
+            NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData / 5 * OutputLayer) * MaxOutputVal / MaxThresholdVal);
+            //NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData * 3 / 5) * 10); // /300 * 20000 / 2000 (divided by 100 samples and 3 vals per sample, multiplied by maxval, divided by what I want the base error to be)
+
         }
 
-        public NeuralNetworkPredictor(int Length)
+        [OnDeserialized]
+        private void OnDeserialized(StreamingContext context)
+        {
+            SetupNN();
+        }
+
+        public NeuralNetworkPredictor(int InputLayerCount, int HiddenLayerCount, int OutputLayerCount, double MinInputVal, double MaxInputVal, double MinOutputVal, double MaxOutputVal,
+            double MaxThresholdValue, int MaxTrainingData)
+        {
+            InputLayer = InputLayerCount;
+            HiddenLayer = HiddenLayerCount;
+            OutputLayer = OutputLayerCount;
+            this.MinVal = MinInputVal;
+            this.MaxVal = MaxInputVal;
+            this.MinOutputVal = MinOutputVal;
+            this.MaxOutputVal = MaxOutputVal;
+            this.MaxThresholdVal = MaxThresholdValue;
+            this.MaxTrainingData = MaxTrainingData;
+            SetupNN();
+        }
+
+        private void SetupNN()
         {
             lock (NetworkLock)
             {
                 if (Network == null)
                 {
-                    Network = new DeepBeliefNetwork(Length, HiddenLayer, OutputLayer);
+                    Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
                     if (NetworkSerializeValue != null && NetworkSerializeValue.Count > 0)
                     {
                         int Current = 0;
@@ -200,7 +225,7 @@ namespace SharpGenetics.Predictor
             //Maybe only add different inputs / outputs?
             lock (NetworkLock)
             {
-                NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs));
+                NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs, MinVal, MinOutputVal, MaxVal, MaxOutputVal));
                 if (NetworkTrainingData.Count > MaxTrainingData) //TODO change to param
                 {
                     NetworkTrainingData.RemoveAt(0);
@@ -227,11 +252,53 @@ namespace SharpGenetics.Predictor
             return Result;
         }
 
-        public void IncrementPredictionCount()
+        public void IncrementPredictionCount(int Generation, bool Accepted)
         {
             lock (NetworkLock)
             {
-                Predictions++;
+                while(Generation >= PredictionsByGeneration.Count)
+                {
+                    PredictionsByGeneration.Add(0);
+                }
+
+                PredictionsByGeneration[Generation]++;
+
+                if (Accepted)
+                {
+                    AcceptedPredictions++;
+
+                    while (Generation >= AcceptedPredictionsByGeneration.Count)
+                    {
+                        AcceptedPredictionsByGeneration.Add(0);
+                    }
+                    AcceptedPredictionsByGeneration[Generation]++;
+                }
+            }
+        }
+
+        public void ConfirmResult(int Generation, double NNresult, double ActualResult, double ValueThreshold)
+        {
+            lock (NetworkLock)
+            {
+                while(Generation >= FalseNegativesByGeneration.Count)
+                {
+                    FalseNegativesByGeneration.Add(0);
+                }
+
+                while(Generation >= FalsePositivesByGeneration.Count)
+                {
+                    FalsePositivesByGeneration.Add(0);
+                }
+
+                if(NNresult < ValueThreshold && ActualResult > ValueThreshold)
+                {
+                    FalsePositivesByGeneration[Generation]++;
+                }
+
+                if(NNresult > ValueThreshold && ActualResult < ValueThreshold)
+                {
+                    FalseNegativesByGeneration[Generation]++;
+                }
             }
         }
 

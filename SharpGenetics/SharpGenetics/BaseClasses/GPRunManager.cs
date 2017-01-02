@@ -1,4 +1,5 @@
-﻿using SharpGenetics.Logging;
+﻿using Newtonsoft.Json;
+using SharpGenetics.Logging;
 using SharpGenetics.SelectionAlgorithms;
 using System;
 using System.Collections.Generic;
@@ -30,9 +31,11 @@ namespace SharpGenetics.BaseClasses
         public CRandom mainRandom;
         [DataMember]
         private int CurrentGen = 0;
+        [DataMember]
+        public int RandomSeed = -1;
 
         [DataMember]
-        private List<GenericTest<InputT, OutputT>> tests = null;
+        private List<GenericTest<InputT, OutputT>> Tests = null;
 
         [DataMember]
         public List<PopulationManager<T, InputT, OutputT>> Populations = new List<PopulationManager<T, InputT, OutputT>>();
@@ -80,9 +83,11 @@ namespace SharpGenetics.BaseClasses
             //SetTests(Tests);
         }
 
-        public GPRunManager(RunParameters Params, List<GenericTest<InputT, OutputT>> Tests, int RandomSeed = -1)
+        [JsonConstructor]
+        public GPRunManager(RunParameters Parameters, List<GenericTest<InputT, OutputT>> Tests, int RandomSeed = -1)
         {
-            Parameters = Params;
+            this.Parameters = Parameters;
+            this.RandomSeed = RandomSeed;
             mainRandom = new CRandom(RandomSeed != -1 ? RandomSeed : (int)(double)Parameters.GetParameter("Par_Seed"));
             SetTests(Tests);
 
@@ -118,7 +123,7 @@ namespace SharpGenetics.BaseClasses
 
                 Populations.Add(new PopulationManager<T, InputT, OutputT>(mainRandom.Next(), InstanceParams, false, false));
 
-                Populations[i].SetTests(tests);
+                Populations[i].SetTests(Tests);
                 Populations[i].GenerateRandomMembers();
                 Populations[i].FinalizeGeneration();
                 Populations[i].SelectionAlgorithm = SelectionAlgorithm;
@@ -207,7 +212,7 @@ namespace SharpGenetics.BaseClasses
                 foreach (var e in doneEvents)
                     e.WaitOne();
 
-                Console.WriteLine(NumberOfRuns + " generations passed");
+                Console.WriteLine(NumberOfRuns + " generations passed - Current generation: " + CurrentGen);
 
                 CurrentGen += NumberOfRuns;
                 GenerationsThisSubRun += NumberOfRuns;
@@ -216,7 +221,7 @@ namespace SharpGenetics.BaseClasses
                 if ((RefreshGenCount > 0) && (CurrentGen % RefreshGenCount == 0))
                     foreach (PopulationManager<T, InputT, OutputT> pop in Populations)
                     {
-                        if (pop.GetTopXMembers(1)[0].CalculateFitness(CurrentGen, tests.ToArray()) < 0.000001)
+                        if (pop.GetTopXMembers(1)[0].CalculateFitness(CurrentGen, Tests.ToArray()) < 0.000001)
                         {
                             Completed = true;
                         }
@@ -240,7 +245,7 @@ namespace SharpGenetics.BaseClasses
 
                     PopulationManager<T, InputT, OutputT> NewPop = new PopulationManager<T, InputT, OutputT>(_rand, Parameters.Clone(), false);
 
-                    NewPop.SetTests(tests);
+                    NewPop.SetTests(Tests);
                     NewPop.SelectionAlgorithm = SelectionAlgorithm;
 
                     PopulationManager<T, InputT, OutputT> worstPop = null;
@@ -256,9 +261,9 @@ namespace SharpGenetics.BaseClasses
 
                         /*double tempFit = pop.GetAverageFitness();*/
 
-                        if (pop.GetMember(0).CalculateFitness<InputT, OutputT>(CurrentGen, tests.ToArray()) >= worstFitness)
+                        if (pop.GetMember(0).CalculateFitness<InputT, OutputT>(CurrentGen, Tests.ToArray()) >= worstFitness)
                         {
-                            worstFitness = pop.GetMember(0).CalculateFitness<InputT, OutputT>(CurrentGen, tests.ToArray());
+                            worstFitness = pop.GetMember(0).CalculateFitness<InputT, OutputT>(CurrentGen, Tests.ToArray());
                             worstPop = pop;
                         }
                     }
@@ -351,12 +356,12 @@ namespace SharpGenetics.BaseClasses
         /// <param name="Tests"></param>
         public void SetTests(List<GenericTest<InputT, OutputT>> Tests)
         {
-            tests = Tests;
+            this.Tests = Tests;
         }
 
         public List<GenericTest<InputT, OutputT>> GetTests()
         {
-            return tests;
+            return Tests;
         }
 
         /// <summary>
