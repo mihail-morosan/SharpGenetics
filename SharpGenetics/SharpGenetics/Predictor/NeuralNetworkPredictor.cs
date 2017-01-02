@@ -241,13 +241,13 @@ namespace SharpGenetics.Predictor
                 List<double> NewInput = new List<double>(Input);
                 for (int i = 0; i < NewInput.Count; i++)
                 {
-                    NewInput[i] /= MaxVal;
+                    NewInput[i] = (NewInput[i] - MinVal) / (MaxVal - MinVal);
                 }
                 Result = Network.Compute(NewInput.ToArray()).ToList();
             }
             for (int i = 0; i < Result.Count; i++)
             {
-                Result[i] *= MaxOutputVal;
+                Result[i] = Result[i] * (MaxOutputVal - MinOutputVal) + MinOutputVal;
             }
             return Result;
         }
