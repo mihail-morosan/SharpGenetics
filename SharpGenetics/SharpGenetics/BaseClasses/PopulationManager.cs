@@ -105,6 +105,8 @@ namespace SharpGenetics.BaseClasses
                 AddToParameters("Par_MaxPopMembers", 1000);
                 AddToParameters("Par_TournamentSize", 20);
             }
+            
+            UsePredictor = (int)(double)_parameters.GetParameter("extra_use_predictor") == 1;
 
             string FC = (string)_parameters.GetParameter("string_FitnessComparer");
 
