@@ -170,6 +170,12 @@ namespace SharpGenetics.BaseClasses
                 _currentMembers.Add(Member);
             _nextGeneration.Clear();
 
+            if(UsePredictor)
+            {
+                int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
+                Predictor.Cleanup(GenerationsRun, _currentMembers.Count - ElitismCount);
+            }
+
             GenerationsRun++;
         }
 

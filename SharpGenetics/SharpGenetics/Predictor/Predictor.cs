@@ -13,5 +13,7 @@ namespace SharpGenetics.Predictor
         public abstract T Predict(Z Input);
 
         public abstract double GetAccuracy();
+
+        public abstract void Cleanup(int Generation, int NonElitePopulationSize);
     }
 }

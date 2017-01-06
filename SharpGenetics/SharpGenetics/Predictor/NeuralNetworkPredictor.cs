@@ -148,7 +148,7 @@ namespace SharpGenetics.Predictor
                 }
             }
 
-            error /= NetworkTrainingData.Count;
+            error /= MaxTrainingData * 4 / 5;
 
 
             //TODO: change NetworkAccuracy here
@@ -162,7 +162,11 @@ namespace SharpGenetics.Predictor
                     Diff += Math.Abs(In.Outputs[i] - outputVal[i]);
                 }
             }
-            NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData / 5 * OutputLayer) * MaxOutputVal / MaxThresholdVal);
+
+            double DiffPerSample = (Diff / (MaxTrainingData * OutputLayer / 5));
+            double DiffPerSampleNotNormalised = DiffPerSample * (MaxOutputVal - MinOutputVal) + MinOutputVal;
+            
+            NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / MaxThresholdVal);
             //NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData * 3 / 5) * 10); // /300 * 20000 / 2000 (divided by 100 samples and 3 vals per sample, multiplied by maxval, divided by what I want the base error to be)
 
         }
@@ -317,6 +321,20 @@ namespace SharpGenetics.Predictor
             Accord.Statistics.Distributions.Univariate.NormalDistribution Dist = new Accord.Statistics.Distributions.Univariate.NormalDistribution(Mean, StdDev);
 
             return Dist.Generate(Samples).ToList();
+        }
+
+        public override void Cleanup(int Generation, int NonElitePopulationSize)
+        {
+            lock (NetworkLock)
+            {
+                if (AcceptedPredictionsByGeneration.Count > Generation && Generation >= 0)
+                {
+                    if (AcceptedPredictionsByGeneration[Generation] >= (double)NonElitePopulationSize * 0.7d)
+                    {
+                        NetworkTrainingData.Clear();
+                    }
+                }
+            }
         }
     }
 }
