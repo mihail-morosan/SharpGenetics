@@ -29,9 +29,10 @@ namespace SharpGenetics.FunctionRegression
 
     public class HeuristicRegression : FunctionRegression
     {
-        public HeuristicRegression(RunParameters _params, XNode root = null, CRandom rand = null) : base(_params, root, rand)
+        PopulationManager<HeuristicRegression, double, double> Manager;
+        public HeuristicRegression(PopulationManager<HeuristicRegression, double, double> Manager, XNode root = null, CRandom rand = null) : base(null, root, rand)
         {
-            
+            this.Manager = Manager as PopulationManager<HeuristicRegression, double, double>;
         }
 
         static int[][] Neighbours = new int[][] { new int[] { 0, 1 }, new int[] { 1, 0 }, 
@@ -169,7 +170,7 @@ namespace SharpGenetics.FunctionRegression
             return PathToTake.Count + StepsTaken * 10 + cost_so_far.Keys.Count * 4;
         }
 
-        public override double CalculateFitness<T,Y>(params GenericTest<T,Y>[] values)
+        public override double CalculateFitness<T,Y>(int CurrentGeneration, params GenericTest<T,Y>[] values)
         {
             if (this.Fitness < 0)
             {
@@ -212,7 +213,7 @@ namespace SharpGenetics.FunctionRegression
 
         public override PopulationMember Clone()
         {
-            HeuristicRegression ret = new HeuristicRegression(popParams, rootNode.Clone(), rand);
+            HeuristicRegression ret = new HeuristicRegression(Manager, rootNode.Clone(), rand);
 
             return ret;
         }

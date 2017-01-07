@@ -173,7 +173,7 @@ namespace SharpGenetics.BaseClasses
             if(UsePredictor)
             {
                 int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
-                Predictor.Cleanup(GenerationsRun, _currentMembers.Count - ElitismCount);
+                Predictor.AfterGeneration(GenerationsRun, _currentMembers.Count - ElitismCount);
             }
 
             GenerationsRun++;
@@ -335,7 +335,7 @@ namespace SharpGenetics.BaseClasses
                 _nextGeneration.Add(_currentMembers[i]);
             }
 
-            _currentMembers.RemoveRange(0, ElitismCount);
+            //_currentMembers.RemoveRange(0, ElitismCount);
 
             if (_nextGeneration.Count < ElitismCount)
             {
@@ -455,8 +455,10 @@ namespace SharpGenetics.BaseClasses
         /// <param name="TournamentSelection">Whether to use tournament selection or not</param>
         public void GenerateMembersThroughCrossover(int count)
         {
-            if ((_currentMembers.Count == 0))// || (_nextGeneration.Count == 0 && TournamentSelection == 0))
+            if ((_currentMembers.Count == 0) || count <= 0)// || (_nextGeneration.Count == 0 && TournamentSelection == 0))
+            {
                 return;
+            }
 
             int i = 0;
             int iteration = 0;
@@ -487,8 +489,10 @@ namespace SharpGenetics.BaseClasses
         /// <param name="TournamentSelection">Whether to use tournament selection or not</param>
         public void GenerateMembersThroughMutation(int count)
         {
-            if ((_currentMembers.Count == 0))// || (_nextGeneration.Count == 0 && TournamentSelection == 0))
+            if ((_currentMembers.Count == 0) || count <= 0)// || (_nextGeneration.Count == 0 && TournamentSelection == 0))
+            {
                 return;
+            }
 
             int i = 0;
             int iteration = 0;

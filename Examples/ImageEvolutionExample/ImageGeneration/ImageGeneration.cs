@@ -185,17 +185,16 @@ namespace SharpGenetics.ImageGeneration
     [DataContractAttribute]
     class ImageGeneration : BaseClasses.PopulationMember
     {
-        [DataMember]
-        RunParameters popParams;
-
-        public PopulationMember Clone()
+        public override PopulationMember Clone()
         {
-            ImageGeneration ret = new ImageGeneration(popParams, Triangles, rand);
+            ImageGeneration ret = new ImageGeneration(Manager, Triangles, rand);
             return ret;
         }
 
         [DataMember]
         public Bitmap BImage { get { return _image;  } }
+
+        public PopulationManager<ImageGeneration, float, Bitmap> Manager { get; private set; }
 
         [DataMember]
         LockBitmap LockBit;
@@ -210,30 +209,15 @@ namespace SharpGenetics.ImageGeneration
         int TriCount = 5;
         [DataMember]
         int Accuracy = 1;
+        [DataMember]
+        int ImageSize = 1;
 
         [DataMember]
         List<ImgShape> Triangles;
-
-        [DataMember]
-        CRandom rand;
-
-
-        public CRandom GetRandomGenerator()
+        
+        public ImageGeneration(PopulationManager<ImageGeneration, float, Bitmap> Manager, List<ImgShape> TriangleList = null, CRandom _random = null)
         {
-            return rand;
-        }
-        public void SetRandomGenerator(CRandom rand)
-        {
-            //this.rand = rand;
-        }
-
-
-        public ImageGeneration(RunParameters _params, List<ImgShape> TriangleList = null, CRandom _random = null)
-        {
-            popParams = _params;
-
-            TriCount = (int)(double)popParams.GetParameter("extra_tri_count");
-            Accuracy = (int)(double)popParams.GetParameter("extra_accuracy");
+            ReloadParameters(Manager);
 
             this.rand = _random;
 
@@ -242,7 +226,7 @@ namespace SharpGenetics.ImageGeneration
 
             if (TriangleList == null)
             {
-                Triangles = GenerateRandomTriangles((int)(double)popParams.GetParameter("extra_image_size"), TriCount);
+                Triangles = GenerateRandomTriangles(ImageSize, TriCount);
             }
             else
             {
@@ -255,7 +239,7 @@ namespace SharpGenetics.ImageGeneration
 
             RemoveHiddenTriangles(Triangles);
 
-            _image = GenerateImage(Triangles, (int)(double)popParams.GetParameter("extra_image_size"));
+            _image = GenerateImage(Triangles, ImageSize);
 
             LockBit = new LockBitmap(_image);
 
@@ -357,7 +341,7 @@ namespace SharpGenetics.ImageGeneration
             Pen blackPen = new Pen(Color.Black);
 
             using(Graphics g = Graphics.FromImage(image)) {
-                g.FillRectangle(new SolidBrush(Color.White), new Rectangle(0, 0, ImageSize, ImageSize));
+                g.FillRectangle(new SolidBrush(Color.Black), new Rectangle(0, 0, ImageSize, ImageSize));
                 for(int i=0;i<Tris.Count;i++)
                 {
                     if (Tris[i] is Tri)
@@ -387,7 +371,7 @@ namespace SharpGenetics.ImageGeneration
             return (inputImage.Clone(new Rectangle(0, 0, inputImage.Width, inputImage.Height), newFormat));
         }
 
-        public double CalculateFitness<T, Y>(params BaseClasses.GenericTest<T, Y>[] values)
+        public override double CalculateFitness<T, Y>(int CurrentGeneration, params GenericTest<T, Y>[] values)
         {
             //Compare _image to test image
 
@@ -502,7 +486,7 @@ namespace SharpGenetics.ImageGeneration
             return Fitness;
         }
 
-        public T Crossover<T>(T b) where T : BaseClasses.PopulationMember
+        public override T Crossover<T>(T b)
         {
             List<ImgShape> newList = new List<ImgShape>(this.Triangles);
 
@@ -523,12 +507,12 @@ namespace SharpGenetics.ImageGeneration
                     newList.RemoveRange(TriCount, newList.Count - TriCount);
             }
 
-            PopulationMember ret = new ImageGeneration(popParams, newList, rand);
+            PopulationMember ret = new ImageGeneration(Manager, newList, rand);
 
             return (T)ret;
         }
 
-        public T Mutate<T>() where T : BaseClasses.PopulationMember
+        public override T Mutate<T>()
         {
             List<ImgShape> newList = new List<ImgShape>(this.Triangles);
 
@@ -577,7 +561,7 @@ namespace SharpGenetics.ImageGeneration
             if (newList.Count > TriCount * 2)
                 newList.RemoveRange(TriCount, newList.Count - TriCount);
 
-            PopulationMember ret = new ImageGeneration(popParams, newList, rand);
+            PopulationMember ret = new ImageGeneration(Manager, newList, rand);
 
             return (T)ret;
         }
@@ -607,6 +591,25 @@ namespace SharpGenetics.ImageGeneration
             }
 
             return true;
+        }
+
+        public override void ReloadParameters<T, I, O>(PopulationManager<T, I, O> Manager)
+        {
+
+            this.Manager = Manager as PopulationManager<ImageGeneration, float, Bitmap>;
+            TriCount = (int)(double)Manager.GetParameter("extra_tri_count");
+            Accuracy = (int)(double)Manager.GetParameter("extra_accuracy");
+            ImageSize = (int)(double)Manager.GetParameter("extra_image_size");
+        }
+
+        public override double GetFitness()
+        {
+            return Fitness;
+        }
+
+        public override PopulationManager<T, I, O> GetParentManager<T, I, O>()
+        {
+            return Manager as PopulationManager<T, I, O>;
         }
     }
 }

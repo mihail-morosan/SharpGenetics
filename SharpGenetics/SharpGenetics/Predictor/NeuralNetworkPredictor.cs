@@ -21,8 +21,8 @@ namespace SharpGenetics.Predictor
 
         public InputOutputPair(List<double> In, List<double> Out, double MinVal, double MinOutput, double MaxVal, double MaxOutputVal)
         {
-            Inputs = In;
-            Outputs = Out;
+            Inputs = new List<double>(In);
+            Outputs = new List<double>(Out);
             for (int i = 0; i < Inputs.Count; i++)
             {
                 Inputs[i] = (Inputs[i] - MinVal) / (MaxVal - MinVal);
@@ -68,7 +68,10 @@ namespace SharpGenetics.Predictor
         [DataMember]
         public double MaxThresholdVal = 2000;
 
-        public DeepBeliefNetwork Network = null;
+        [DataMember]
+        public int TrainingEpochsPerGeneration = 1;
+
+        public ActivationNetwork Network = null;
 
         [DataMember]
         public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
@@ -133,14 +136,14 @@ namespace SharpGenetics.Predictor
 
             var teacher = new BackPropagationLearning(Network)
             {
-                LearningRate = LearningRate,
-                Momentum = 0.5
+                //LearningRate = LearningRate,
+                //Momentum = 0.5
             };
 
 
             double error = 0;
 
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < TrainingEpochsPerGeneration; i++)
             {
                 foreach (var In in NetworkTrainingData.Take(MaxTrainingData * 4 / 5))
                 {
@@ -149,12 +152,14 @@ namespace SharpGenetics.Predictor
             }
 
             error /= MaxTrainingData * 4 / 5;
+            error /= TrainingEpochsPerGeneration;
 
 
             //TODO: change NetworkAccuracy here
             //Test accuracy on training data (not optimal, but it is a rolling dataset)
             double Diff = 0;
-            foreach (var In in NetworkTrainingData.Skip(MaxTrainingData * 4 / 5))
+            int TestOnLastN = MaxTrainingData; // / 5
+            foreach (var In in NetworkTrainingData.Skip(MaxTrainingData - TestOnLastN))
             {
                 var outputVal = Network.Compute(In.Inputs.ToArray());
                 for (int i = 0; i < In.Outputs.Count; i++)
@@ -163,7 +168,7 @@ namespace SharpGenetics.Predictor
                 }
             }
 
-            double DiffPerSample = (Diff / (MaxTrainingData * OutputLayer / 5));
+            double DiffPerSample = (Diff / (TestOnLastN * OutputLayer));
             double DiffPerSampleNotNormalised = DiffPerSample * (MaxOutputVal - MinOutputVal) + MinOutputVal;
             
             NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / MaxThresholdVal);
@@ -178,7 +183,7 @@ namespace SharpGenetics.Predictor
         }
 
         public NeuralNetworkPredictor(int InputLayerCount, int HiddenLayerCount, int OutputLayerCount, double MinInputVal, double MaxInputVal, double MinOutputVal, double MaxOutputVal,
-            double MaxThresholdValue, int MaxTrainingData)
+            double MaxThresholdValue, int MaxTrainingData, int TrainingEpochs)
         {
             InputLayer = InputLayerCount;
             HiddenLayer = HiddenLayerCount;
@@ -189,6 +194,7 @@ namespace SharpGenetics.Predictor
             this.MaxOutputVal = MaxOutputVal;
             this.MaxThresholdVal = MaxThresholdValue;
             this.MaxTrainingData = MaxTrainingData;
+            this.TrainingEpochsPerGeneration = TrainingEpochs;
             SetupNN();
         }
 
@@ -198,7 +204,8 @@ namespace SharpGenetics.Predictor
             {
                 if (Network == null)
                 {
-                    Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
+                    //Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
+                    Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
                     if (NetworkSerializeValue != null && NetworkSerializeValue.Count > 0)
                     {
                         int Current = 0;
@@ -217,7 +224,7 @@ namespace SharpGenetics.Predictor
                     else
                     {
                         new GaussianWeights(Network).Randomize();
-                        Network.UpdateVisibleWeights();
+                        //Network.UpdateVisibleWeights();
                     }
 
                 }
@@ -308,11 +315,6 @@ namespace SharpGenetics.Predictor
 
         public override double GetAccuracy()
         {
-            lock (NetworkLock)
-            {
-                TrainNetwork();
-            }
-
             return NetworkAccuracy;
         }
 
@@ -323,7 +325,7 @@ namespace SharpGenetics.Predictor
             return Dist.Generate(Samples).ToList();
         }
 
-        public override void Cleanup(int Generation, int NonElitePopulationSize)
+        public override void AfterGeneration(int Generation, int NonElitePopulationSize)
         {
             lock (NetworkLock)
             {
@@ -331,9 +333,12 @@ namespace SharpGenetics.Predictor
                 {
                     if (AcceptedPredictionsByGeneration[Generation] >= (double)NonElitePopulationSize * 0.7d)
                     {
-                        NetworkTrainingData.Clear();
+                        //NetworkTrainingData.Clear();
+                        NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, MaxTrainingData));
                     }
                 }
+
+                TrainNetwork();
             }
         }
     }

@@ -62,7 +62,7 @@ namespace SharpGenetics
             t.Start();
             t.Join();
 
-            Console.WriteLine(reference.PercentageDifference(new Bitmap("E:\\GitHub\\GeneticProgrammingCS\\Examples\\Binaries\\Images\\Untitled.png"),5));
+            Console.WriteLine(reference.PercentageDifference(new Bitmap("F:\\GitHub\\SharpGenetics\\Examples\\Binaries\\Images\\Untitled.png"),5));
 
             /*reference = ImageGeneration.ImageGeneration.ChangePixelFormat(reference, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
             var tm = new ExhaustiveTemplateMatching(0);

@@ -16,13 +16,10 @@ using System.Xml.Serialization;
 namespace BlindImmobilePeople.BlindImmobilePeople
 {
     [DataContractAttribute]
-    class BlindImmobileGeneration : SharpGenetics.BaseClasses.PopulationMember
+    class BlindImmobileGeneration : PopulationMember
     {
         [DataMember]
         XNode rootNode;
-
-        [DataMember]
-        CRandom rand;
 
         [DataMember]
         Dictionary<String, double> vars = new Dictionary<string, double>();
@@ -34,24 +31,15 @@ namespace BlindImmobilePeople.BlindImmobilePeople
         int Depth = 1;
 
         [DataMember]
-        RunParameters popParams;
+        int MaxEnergy = 1;
+
+        public PopulationManager<BlindImmobileGeneration, Point, double> Manager { get; private set; }
 
         //static List<XNode> PrototypeNodes = new List<XNode>();
 
-        public CRandom GetRandomGenerator()
+        public BlindImmobileGeneration(PopulationManager<BlindImmobileGeneration, Point, double> Manager, XNode root = null, CRandom rand = null)
         {
-            return rand;
-        }
-        public void SetRandomGenerator(CRandom rand)
-        {
-            this.rand = rand;
-        }
-
-        public BlindImmobileGeneration(RunParameters _params, XNode root = null, CRandom rand = null)
-        { 
-            popParams = _params;
-
-            Depth = (int)(double)_params.GetParameter("extra_node_depth");
+            ReloadParameters(Manager);
 
             this.rand = rand;
 
@@ -240,7 +228,6 @@ namespace BlindImmobilePeople.BlindImmobilePeople
 
         public BDState Simulate<T,Y>(GenericTest<T,Y> Test, bool Verbose = false)
         {
-            int MaxEnergy = (int)(double)popParams.GetParameter("extra_start_energy");
 
             BDState RunState = new BDState();
 
@@ -272,12 +259,12 @@ namespace BlindImmobilePeople.BlindImmobilePeople
             return RunState;
         }
 
-        public double CalculateFitness<T,Y>(params GenericTest<T,Y>[] values)
+        public override double CalculateFitness<T,Y>(int CurrentGeneration, params GenericTest<T,Y>[] values)
         {
             if (this.Fitness < 0)
             {
                 Fitness = 0;
-                int MaxEnergy = (int)(double)popParams.GetParameter("extra_start_energy");
+                //int MaxEnergy = (int)(double)Manager.GetParameters().GetParameter("extra_start_energy");
                 foreach(var Test in values)
                 {
                     BDState RunState = Simulate(Test, false);
@@ -289,7 +276,7 @@ namespace BlindImmobilePeople.BlindImmobilePeople
             return this.Fitness;
         }
 
-        T SharpGenetics.BaseClasses.PopulationMember.Crossover<T>(T b)
+        public override T Crossover<T>(T b)
         {
             XNode root1, root2;
             root1 = this.rootNode;
@@ -320,12 +307,12 @@ namespace BlindImmobilePeople.BlindImmobilePeople
                 //xb.parent = null;
             }
 
-            PopulationMember ret = new BlindImmobileGeneration(popParams, newRoot, rand);
+            PopulationMember ret = new BlindImmobileGeneration(Manager, newRoot, rand);
 
             return (T)ret;
         }
 
-        T SharpGenetics.BaseClasses.PopulationMember.Mutate<T>()
+        public override T Mutate<T>()
         {
             XNode root1;
             root1 = this.rootNode;
@@ -337,7 +324,7 @@ namespace BlindImmobilePeople.BlindImmobilePeople
             XNode newRoot = root1.Clone();
             xa = newRoot.GetNthNode(m1);
 
-            int NewNodeMaxDepth = (int)(double)popParams.GetParameter("extra_node_depth") - xa.NodeDepth();
+            int NewNodeMaxDepth = Depth - xa.NodeDepth();
 
             xb = GenerateTree(NewNodeMaxDepth, xa.parent);
 
@@ -355,14 +342,14 @@ namespace BlindImmobilePeople.BlindImmobilePeople
                 //xb.parent = null;
             }
 
-            PopulationMember ret = new BlindImmobileGeneration(popParams, newRoot, rand);
+            PopulationMember ret = new BlindImmobileGeneration(Manager, newRoot, rand);
 
             return (T)ret;
         }
 
-        public PopulationMember Clone()
+        public override PopulationMember Clone()
         {
-            BlindImmobileGeneration ret = new BlindImmobileGeneration(popParams, rootNode.Clone(), rand);
+            BlindImmobileGeneration ret = new BlindImmobileGeneration(Manager, rootNode.Clone(), rand);
             return ret;
         }
 
@@ -381,6 +368,24 @@ namespace BlindImmobilePeople.BlindImmobilePeople
         public override bool Equals(object obj)
         {
             return this.ToString().Equals(((BlindImmobileGeneration)obj).ToString());
+        }
+
+        public override void ReloadParameters<T,I,O>(PopulationManager<T, I, O> Manager)
+        {
+            this.Manager = Manager as PopulationManager<BlindImmobileGeneration, Point, double>;
+            Depth = (int)(double)Manager.GetParameters().GetParameter("extra_node_depth");
+
+            MaxEnergy = (int)(double)Manager.GetParameters().GetParameter("extra_start_energy");
+        }
+
+        public override double GetFitness()
+        {
+            return Fitness;
+        }
+
+        public override PopulationManager<T, I, O> GetParentManager<T, I, O>()
+        {
+            return Manager as PopulationManager<T,I,O>;
         }
     }
 }
