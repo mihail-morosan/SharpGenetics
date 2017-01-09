@@ -12,7 +12,7 @@ namespace SharpGenetics.Predictor
     {
         public abstract T Predict(Z Input);
 
-        public abstract double GetAccuracy();
+        public abstract double GetAccuracy(double BaseScoreError);
 
         public abstract void AfterGeneration(int Generation, int NonElitePopulationSize);
     }

@@ -35,6 +35,9 @@ namespace SharpGenetics.BaseClasses
         private List<T> _nextGeneration;
 
         [DataMember]
+        public List<double> AverageFitnessByGeneration;
+
+        [DataMember]
         private List<GenericTest<InputT, OutputT>> _tests;
 
         [DataMember]
@@ -88,6 +91,8 @@ namespace SharpGenetics.BaseClasses
             _nextGeneration = new List<T>();
 
             _tests = new List<GenericTest<InputT, OutputT>>();
+
+            AverageFitnessByGeneration = new List<double>();
 
             rand = new CRandom(RandomSeed, ForceRandomLog);
             RSeed = RandomSeed;
@@ -165,6 +170,11 @@ namespace SharpGenetics.BaseClasses
         /// </summary>
         public void FinalizeGeneration()
         {
+            if (GenerationsRun >= 0)
+            {
+                AverageFitnessByGeneration.Add(GetAverageFitness(true));
+            }
+
             _currentMembers.Clear();
             foreach(T Member in _nextGeneration)
                 _currentMembers.Add(Member);
@@ -175,7 +185,7 @@ namespace SharpGenetics.BaseClasses
                 int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
                 Predictor.AfterGeneration(GenerationsRun, _currentMembers.Count - ElitismCount);
             }
-
+            
             GenerationsRun++;
         }
 
@@ -183,16 +193,27 @@ namespace SharpGenetics.BaseClasses
         /// Retrieves the average fitness of all members in this population.
         /// </summary>
         /// <returns>Average fitness as double</returns>
-        public double GetAverageFitness()
+        public double GetAverageFitness(bool OnlyIndividualsWithEvaluations = false)
         {
             double ret = 0;
             if (_currentMembers.Count == 0)
                 return 0;
-            foreach(T member in _currentMembers)
+            if (!OnlyIndividualsWithEvaluations)
             {
-                ret += member.CalculateFitness(this.GenerationsRun, _tests.ToArray());
+                foreach (T member in _currentMembers)
+                {
+                    ret += member.CalculateFitness(this.GenerationsRun, _tests.ToArray());
+                }
+                ret = ret / _currentMembers.Count;
+            } else
+            {
+                var indivs = _currentMembers.Where(i => i.GetFitness() >= 0);
+                foreach (T member in indivs)
+                {
+                    ret += member.GetFitness();
+                }
+                ret = ret / indivs.Count();
             }
-            ret = ret / _currentMembers.Count;
             return ret;
         }
 
@@ -473,7 +494,8 @@ namespace SharpGenetics.BaseClasses
                 T m1, m2;
 
                 m1 = SelectionAlgorithm.Select(this, _currentMembers);
-                m2 = SelectionAlgorithm.Select(this, _currentMembers);
+                var ListWithoutM1 = _currentMembers.Where(m => m != m1).ToList();
+                m2 = SelectionAlgorithm.Select(this, ListWithoutM1);
                 
                 _nextGeneration.Add(m1.Crossover<T>(m2));
                 i++;

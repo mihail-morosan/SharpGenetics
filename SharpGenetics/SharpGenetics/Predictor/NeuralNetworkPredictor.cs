@@ -66,9 +66,11 @@ namespace SharpGenetics.Predictor
         public double MinOutputVal = 0;
 
         [DataMember]
-        public double MaxThresholdVal = 2000;
-
+        double DiffPerSample = -1;
         [DataMember]
+        double DiffPerSampleNotNormalised = -1;
+
+    [DataMember]
         public int TrainingEpochsPerGeneration = 1;
 
         public ActivationNetwork Network = null;
@@ -121,13 +123,13 @@ namespace SharpGenetics.Predictor
         public List<int> FalseNegativesByGeneration = new List<int>();
 
         [DataMember]
-        public double NetworkAccuracy = 0;
+        public double NetworkAccuracy = -1;
 
         public void TrainNetwork()
         {
             if (NetworkTrainingData.Count < MaxTrainingData)
             {
-                NetworkAccuracy = 0;
+                NetworkAccuracy = -1;
                 return;
             }
 
@@ -168,10 +170,10 @@ namespace SharpGenetics.Predictor
                 }
             }
 
-            double DiffPerSample = (Diff / (TestOnLastN * OutputLayer));
-            double DiffPerSampleNotNormalised = DiffPerSample * (MaxOutputVal - MinOutputVal) + MinOutputVal;
+            DiffPerSample = (Diff / (TestOnLastN * OutputLayer));
+            DiffPerSampleNotNormalised = DiffPerSample * (MaxOutputVal - MinOutputVal) + MinOutputVal;
             
-            NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / MaxThresholdVal);
+            //NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / MaxThresholdVal);
             //NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData * 3 / 5) * 10); // /300 * 20000 / 2000 (divided by 100 samples and 3 vals per sample, multiplied by maxval, divided by what I want the base error to be)
 
         }
@@ -182,8 +184,10 @@ namespace SharpGenetics.Predictor
             SetupNN();
         }
 
-        public NeuralNetworkPredictor(int InputLayerCount, int HiddenLayerCount, int OutputLayerCount, double MinInputVal, double MaxInputVal, double MinOutputVal, double MaxOutputVal,
-            double MaxThresholdValue, int MaxTrainingData, int TrainingEpochs)
+        public NeuralNetworkPredictor(int InputLayerCount, int HiddenLayerCount, int OutputLayerCount, 
+            double MinInputVal, double MaxInputVal, 
+            double MinOutputVal, double MaxOutputVal,
+            int MaxTrainingData, int TrainingEpochs)
         {
             InputLayer = InputLayerCount;
             HiddenLayer = HiddenLayerCount;
@@ -192,7 +196,6 @@ namespace SharpGenetics.Predictor
             this.MaxVal = MaxInputVal;
             this.MinOutputVal = MinOutputVal;
             this.MaxOutputVal = MaxOutputVal;
-            this.MaxThresholdVal = MaxThresholdValue;
             this.MaxTrainingData = MaxTrainingData;
             this.TrainingEpochsPerGeneration = TrainingEpochs;
             SetupNN();
@@ -313,8 +316,14 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public override double GetAccuracy()
+        public override double GetAccuracy(double BaseScoreError)
         {
+            if (BaseScoreError <= 0 || NetworkTrainingData.Count < MaxTrainingData || DiffPerSampleNotNormalised < 0)
+                return -1;
+            lock (NetworkLock)
+            {
+                NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / BaseScoreError);
+            }
             return NetworkAccuracy;
         }
 
