@@ -340,7 +340,7 @@ namespace SharpGenetics.Predictor
             {
                 if (AcceptedPredictionsByGeneration.Count > Generation && Generation >= 0)
                 {
-                    if (AcceptedPredictionsByGeneration[Generation] >= (double)NonElitePopulationSize * 0.7d)
+                    if (AcceptedPredictionsByGeneration[Generation] >= (double)NonElitePopulationSize * 0.5d)
                     {
                         //NetworkTrainingData.Clear();
                         NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, MaxTrainingData));
