@@ -74,6 +74,7 @@
     <Compile Include="BaseClasses\GPRunManager.cs" />
     <Compile Include="BaseClasses\PopulationManager.cs" />
     <Compile Include="BaseClasses\PopulationMember.cs" />
+    <Compile Include="BaseClasses\RunMetrics.cs" />
     <Compile Include="BaseClasses\RunParameters.cs" />
     <Compile Include="Predictor\NeuralNetworkPredictor.cs" />
     <Compile Include="Predictor\Predictor.cs" />

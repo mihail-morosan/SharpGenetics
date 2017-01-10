@@ -35,7 +35,8 @@ namespace SharpGenetics.BaseClasses
         private List<T> _nextGeneration;
 
         [DataMember]
-        public List<double> AverageFitnessByGeneration;
+        //public List<double> AverageFitnessByGeneration;
+        public RunMetrics RunMetrics;
 
         [DataMember]
         private List<GenericTest<InputT, OutputT>> _tests;
@@ -92,7 +93,7 @@ namespace SharpGenetics.BaseClasses
 
             _tests = new List<GenericTest<InputT, OutputT>>();
 
-            AverageFitnessByGeneration = new List<double>();
+            RunMetrics = new RunMetrics();
 
             rand = new CRandom(RandomSeed, ForceRandomLog);
             RSeed = RandomSeed;
@@ -172,7 +173,7 @@ namespace SharpGenetics.BaseClasses
         {
             if (GenerationsRun >= 0)
             {
-                AverageFitnessByGeneration.Add(GetAverageFitness(true));
+                RunMetrics.AddGeneration(GetAverageFitness(true), GetTopXMembers(1, true).First().GetFitness());
             }
 
             _currentMembers.Clear();
@@ -236,7 +237,7 @@ namespace SharpGenetics.BaseClasses
         /// </summary>
         /// <param name="x">Nunber of members to return</param>
         /// <returns></returns>
-        public List<T> GetTopXMembers(int x)
+        public List<T> GetTopXMembers(int x, bool OnlyIndividualsWithEvaluations = false)
         {
             //List<T> test = new List<T>();
 
@@ -244,9 +245,12 @@ namespace SharpGenetics.BaseClasses
 
             //test.Sort((m1, m2) => m1.CalculateFitness(_tests.ToArray()).CompareTo(m2.CalculateFitness(_tests.ToArray())));
 
-            SortAll();
+            if (!OnlyIndividualsWithEvaluations)
+            {
+                SortAll();
+            }
 
-            List<T> test = _currentMembers.ToList();
+            List<T> test = (OnlyIndividualsWithEvaluations) ? _currentMembers.Where(i => i.GetFitness() >= 0).ToList() : _currentMembers.ToList();
 
             if (test.Count > x)
                 test.RemoveRange(x, test.Count - x);
