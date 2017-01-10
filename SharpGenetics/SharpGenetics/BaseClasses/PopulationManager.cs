@@ -173,7 +173,8 @@ namespace SharpGenetics.BaseClasses
         {
             if (GenerationsRun >= 0)
             {
-                RunMetrics.AddGeneration(GetAverageFitness(true), GetTopXMembers(1, true).First().GetFitness());
+                var fitnesses = _currentMembers.Select(x => x.GetFitness());
+                RunMetrics.AddGeneration(GetAverageFitness(true), GetTopXMembers(1, true).First().GetFitness(), RunMetrics.GetThirdQuartile(fitnesses.ToList()));
             }
 
             _currentMembers.Clear();
