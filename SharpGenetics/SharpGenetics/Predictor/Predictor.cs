@@ -14,6 +14,6 @@ namespace SharpGenetics.Predictor
 
         public abstract double GetAccuracy(double BaseScoreError);
 
-        public abstract void AfterGeneration(int Generation, int NonElitePopulationSize);
+        public abstract void AfterGeneration(int Generation, int NonElitePopulationSize, int RandomSeed);
     }
 }

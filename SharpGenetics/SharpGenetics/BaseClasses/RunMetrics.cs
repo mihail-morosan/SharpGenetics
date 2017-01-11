@@ -16,25 +16,38 @@ namespace SharpGenetics.BaseClasses
         public List<double> BestFitnesses = new List<double>();
         [DataMember]
         public List<double> ThirdQuartileOfFitnesses = new List<double>();
+        [DataMember]
+        public List<double> MedianOfFitnesses = new List<double>();
 
-        public void AddGeneration(double AvgFitness, double BestFitness, double ThirdQrtl)
+        public void AddGeneration(List<double> Values)
         {
-            AverageFitnesses.Add(AvgFitness);
-            BestFitnesses.Add(BestFitness);
-            ThirdQuartileOfFitnesses.Add(ThirdQrtl);
+            if (Values.Count == 0)
+                return;
+            var Sorted = GetSortedList(Values);
+            AverageFitnesses.Add(Sorted.Average());
+            BestFitnesses.Add(Sorted[0]);
+            ThirdQuartileOfFitnesses.Add(GetThirdQuartile(Sorted));
+            MedianOfFitnesses.Add(GetMedian(Sorted));
+        }
+
+        public static List<double> GetSortedList(List<double> Values)
+        {
+            var Sorted = new List<double>(Values);
+            Sorted.Sort();
+            return Sorted;
         }
 
         public static double GetThirdQuartile(List<double> Values)
         {
-            if (Values.Count == 0)
-                return 0;
-            List<double> SortedFitnesses = new List<double>(Values);
-            SortedFitnesses.Sort();
-
             Accord.DoubleRange range;
-            Accord.Statistics.Measures.Quartiles(SortedFitnesses.ToArray(), out range, true);
+            Accord.Statistics.Measures.Quartiles(Values.ToArray(), out range, true);
 
             return range.Max;
+        }
+
+        public static double GetMedian(List<double> Values)
+        {
+            return Accord.Statistics.Measures.Median(Values.ToArray());
         }
     }
 }

@@ -173,8 +173,8 @@ namespace SharpGenetics.BaseClasses
         {
             if (GenerationsRun >= 0)
             {
-                var fitnesses = _currentMembers.Select(x => x.GetFitness());
-                RunMetrics.AddGeneration(GetAverageFitness(true), GetTopXMembers(1, true).First().GetFitness(), RunMetrics.GetThirdQuartile(fitnesses.ToList()));
+                var fitnesses = _currentMembers.Select(x => x.GetFitness()).ToList();
+                RunMetrics.AddGeneration(fitnesses);
             }
 
             _currentMembers.Clear();
@@ -185,7 +185,7 @@ namespace SharpGenetics.BaseClasses
             if(UsePredictor)
             {
                 int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
-                Predictor.AfterGeneration(GenerationsRun, _currentMembers.Count - ElitismCount);
+                Predictor.AfterGeneration(GenerationsRun, _currentMembers.Count - ElitismCount, rand.Next());
             }
             
             GenerationsRun++;

@@ -70,8 +70,11 @@ namespace SharpGenetics.Predictor
         [DataMember]
         double DiffPerSampleNotNormalised = -1;
 
-    [DataMember]
+        [DataMember]
         public int TrainingEpochsPerGeneration = 1;
+
+        [DataMember]
+        public List<double> DiffPerSampleNotNormalisedHistory = new List<double>();
 
         public ActivationNetwork Network = null;
 
@@ -124,60 +127,7 @@ namespace SharpGenetics.Predictor
 
         [DataMember]
         public double NetworkAccuracy = -1;
-
-        public void TrainNetwork()
-        {
-            if (NetworkTrainingData.Count < MaxTrainingData)
-            {
-                NetworkAccuracy = -1;
-                return;
-            }
-
-            double LearningRate = 0.1;
-            double WeightDecay = 0.001;
-
-            var teacher = new BackPropagationLearning(Network)
-            {
-                //LearningRate = LearningRate,
-                //Momentum = 0.5
-            };
-
-
-            double error = 0;
-
-            for (int i = 0; i < TrainingEpochsPerGeneration; i++)
-            {
-                foreach (var In in NetworkTrainingData.Take(MaxTrainingData * 4 / 5))
-                {
-                    error += teacher.Run(In.Inputs.ToArray(), In.Outputs.ToArray());
-                }
-            }
-
-            error /= MaxTrainingData * 4 / 5;
-            error /= TrainingEpochsPerGeneration;
-
-
-            //TODO: change NetworkAccuracy here
-            //Test accuracy on training data (not optimal, but it is a rolling dataset)
-            double Diff = 0;
-            int TestOnLastN = MaxTrainingData; // / 5
-            foreach (var In in NetworkTrainingData.Skip(MaxTrainingData - TestOnLastN))
-            {
-                var outputVal = Network.Compute(In.Inputs.ToArray());
-                for (int i = 0; i < In.Outputs.Count; i++)
-                {
-                    Diff += Math.Abs(In.Outputs[i] - outputVal[i]);
-                }
-            }
-
-            DiffPerSample = (Diff / (TestOnLastN * OutputLayer));
-            DiffPerSampleNotNormalised = DiffPerSample * (MaxOutputVal - MinOutputVal) + MinOutputVal;
-            
-            //NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / MaxThresholdVal);
-            //NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData * 3 / 5) * 10); // /300 * 20000 / 2000 (divided by 100 samples and 3 vals per sample, multiplied by maxval, divided by what I want the base error to be)
-
-        }
-
+        
         [OnDeserialized]
         private void OnDeserialized(StreamingContext context)
         {
@@ -187,7 +137,7 @@ namespace SharpGenetics.Predictor
         public NeuralNetworkPredictor(int InputLayerCount, int HiddenLayerCount, int OutputLayerCount, 
             double MinInputVal, double MaxInputVal, 
             double MinOutputVal, double MaxOutputVal,
-            int MaxTrainingData, int TrainingEpochs)
+            int MaxTrainingData, int TrainingEpochs, int RandomSeed)
         {
             InputLayer = InputLayerCount;
             HiddenLayer = HiddenLayerCount;
@@ -198,6 +148,9 @@ namespace SharpGenetics.Predictor
             this.MaxOutputVal = MaxOutputVal;
             this.MaxTrainingData = MaxTrainingData;
             this.TrainingEpochsPerGeneration = TrainingEpochs;
+
+            Accord.Math.Random.Generator.Seed = RandomSeed;
+
             SetupNN();
         }
 
@@ -207,8 +160,8 @@ namespace SharpGenetics.Predictor
             {
                 if (Network == null)
                 {
-                    //Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
-                    Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
+                    Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
+                    //Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
                     if (NetworkSerializeValue != null && NetworkSerializeValue.Count > 0)
                     {
                         int Current = 0;
@@ -227,7 +180,7 @@ namespace SharpGenetics.Predictor
                     else
                     {
                         new GaussianWeights(Network).Randomize();
-                        //Network.UpdateVisibleWeights();
+                        ((DeepBeliefNetwork)Network).UpdateVisibleWeights();
                     }
 
                 }
@@ -290,7 +243,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public void ConfirmResult(int Generation, double NNresult, double ActualResult, double ValueThreshold)
+        public void ConfirmResult(int Generation, double NNresult, double ActualResult, double ValueThreshold, double ValueThresholdMax)
         {
             lock (NetworkLock)
             {
@@ -309,7 +262,7 @@ namespace SharpGenetics.Predictor
                     FalsePositivesByGeneration[Generation]++;
                 }
 
-                if(NNresult > ValueThreshold && ActualResult < ValueThreshold)
+                if(NNresult > ValueThreshold && ActualResult < ValueThreshold && NNresult < ValueThresholdMax)
                 {
                     FalseNegativesByGeneration[Generation]++;
                 }
@@ -322,7 +275,9 @@ namespace SharpGenetics.Predictor
                 return -1;
             lock (NetworkLock)
             {
-                NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / BaseScoreError);
+                var AggregateDiffPerSample = DiffPerSampleNotNormalisedHistory.Skip(Math.Max(DiffPerSampleNotNormalisedHistory.Count - 3, 0)).Average();
+                //NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / BaseScoreError);
+                NetworkAccuracy = 1.0d - (AggregateDiffPerSample / BaseScoreError);
             }
             return NetworkAccuracy;
         }
@@ -334,7 +289,7 @@ namespace SharpGenetics.Predictor
             return Dist.Generate(Samples).ToList();
         }
 
-        public override void AfterGeneration(int Generation, int NonElitePopulationSize)
+        public override void AfterGeneration(int Generation, int NonElitePopulationSize, int RandomSeed)
         {
             lock (NetworkLock)
             {
@@ -346,9 +301,96 @@ namespace SharpGenetics.Predictor
                         NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, MaxTrainingData));
                     }
                 }
+                
+                Accord.Math.Random.Generator.Seed = RandomSeed;
 
                 TrainNetwork();
+
+                if(DiffPerSampleNotNormalised >= 0)
+                    DiffPerSampleNotNormalisedHistory.Add(DiffPerSampleNotNormalised);
             }
+        }
+
+        public void TrainNetwork()
+        {
+            if (NetworkTrainingData.Count < MaxTrainingData)
+            {
+                NetworkAccuracy = -1;
+                return;
+            }
+
+            double LearningRate = 0.1;
+            double Momentum = 0.5;
+
+            var teacher = new BackPropagationLearning(Network)
+            {
+                //LearningRate = LearningRate,
+                //Momentum = Momentum
+            };
+            
+            /*var teacher = new DeepNeuralNetworkLearning(Network as DeepBeliefNetwork)
+            {
+                Algorithm = (ann, i) => new ParallelResilientBackpropagationLearning(ann),
+                LayerIndex = 1,
+            };*/
+            //var teacher = new LevenbergMarquardtLearning(Network);
+
+            NetworkTrainingData.Sort((a, b) => a.Outputs[0].CompareTo(b.Outputs[0]));
+
+            double error = 0;
+
+            var TrainingSet = new List<InputOutputPair>();
+            var ValidationSet = new List<InputOutputPair>();
+            for(int i=0;i<MaxTrainingData;i++)
+            {
+                if (i % 5 != 0)
+                    TrainingSet.Add(NetworkTrainingData[i]);
+                else
+                    ValidationSet.Add(NetworkTrainingData[i]);
+            }
+
+            for (int i = 0; i < TrainingEpochsPerGeneration; i++)
+            {
+                //foreach (var In in TrainingSet)
+                {
+                    //error += teacher.Run(In.Inputs.ToArray(), In.Outputs.ToArray());
+                    error += teacher.RunEpoch(TrainingSet.Select(a => a.Inputs.ToArray()).ToArray(), TrainingSet.Select(a => a.Outputs.ToArray()).ToArray());
+                }
+            }
+
+            ((DeepBeliefNetwork)Network).UpdateVisibleWeights();
+
+            error /= MaxTrainingData * 4 / 5;
+            error /= TrainingEpochsPerGeneration;
+
+            double Diff = 0;
+            double DiffOnTraining = 0;
+
+            foreach (var In in ValidationSet)
+            {
+                var outputVal = Network.Compute(In.Inputs.ToArray());
+                for (int i = 0; i < In.Outputs.Count; i++)
+                {
+                    Diff += Math.Abs(In.Outputs[i] - outputVal[i]);
+                }
+            }
+
+            foreach(var In in NetworkTrainingData)
+            {
+                var outputVal = Network.Compute(In.Inputs.ToArray());
+                for (int i = 0; i < In.Outputs.Count; i++)
+                {
+                    DiffOnTraining += Math.Abs(In.Outputs[i] - outputVal[i]);
+                }
+            }
+
+            DiffPerSample = Math.Max(Diff / (ValidationSet.Count * OutputLayer), DiffOnTraining / (MaxTrainingData * OutputLayer));
+
+            DiffPerSampleNotNormalised = DiffPerSample * (MaxOutputVal - MinOutputVal) + MinOutputVal;
+
+            //NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / MaxThresholdVal);
+            //NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData * 3 / 5) * 10); // /300 * 20000 / 2000 (divided by 100 samples and 3 vals per sample, multiplied by maxval, divided by what I want the base error to be)
+
         }
     }
 }
