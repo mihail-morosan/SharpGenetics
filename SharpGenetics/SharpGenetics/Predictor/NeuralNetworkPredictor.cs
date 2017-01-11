@@ -54,6 +54,8 @@ namespace SharpGenetics.Predictor
         public int OutputLayer = 3;
         [DataMember]
         public int MaxTrainingData = 100;
+        [DataMember]
+        public int MinTrainingData = 100;
 
         [DataMember]
         public double MaxVal = 20000;
@@ -137,7 +139,8 @@ namespace SharpGenetics.Predictor
         public NeuralNetworkPredictor(int InputLayerCount, int HiddenLayerCount, int OutputLayerCount, 
             double MinInputVal, double MaxInputVal, 
             double MinOutputVal, double MaxOutputVal,
-            int MaxTrainingData, int TrainingEpochs, int RandomSeed)
+            int MinTrainingData, int MaxTrainingData,
+            int TrainingEpochs, int RandomSeed)
         {
             InputLayer = InputLayerCount;
             HiddenLayer = HiddenLayerCount;
@@ -147,6 +150,7 @@ namespace SharpGenetics.Predictor
             this.MinOutputVal = MinOutputVal;
             this.MaxOutputVal = MaxOutputVal;
             this.MaxTrainingData = MaxTrainingData;
+            this.MinTrainingData = MinTrainingData;
             this.TrainingEpochsPerGeneration = TrainingEpochs;
 
             Accord.Math.Random.Generator.Seed = RandomSeed;
@@ -160,8 +164,8 @@ namespace SharpGenetics.Predictor
             {
                 if (Network == null)
                 {
-                    Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
-                    //Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
+                    //Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
+                    Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
                     if (NetworkSerializeValue != null && NetworkSerializeValue.Count > 0)
                     {
                         int Current = 0;
@@ -180,7 +184,7 @@ namespace SharpGenetics.Predictor
                     else
                     {
                         new GaussianWeights(Network).Randomize();
-                        ((DeepBeliefNetwork)Network).UpdateVisibleWeights();
+                        //((DeepBeliefNetwork)Network).UpdateVisibleWeights();
                     }
 
                 }
@@ -193,7 +197,7 @@ namespace SharpGenetics.Predictor
             lock (NetworkLock)
             {
                 NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs, MinVal, MinOutputVal, MaxVal, MaxOutputVal));
-                if (NetworkTrainingData.Count > MaxTrainingData) //TODO change to param
+                if (NetworkTrainingData.Count > MaxTrainingData)
                 {
                     NetworkTrainingData.RemoveAt(0);
                 }
@@ -271,7 +275,7 @@ namespace SharpGenetics.Predictor
 
         public override double GetAccuracy(double BaseScoreError)
         {
-            if (BaseScoreError <= 0 || NetworkTrainingData.Count < MaxTrainingData || DiffPerSampleNotNormalised < 0)
+            if (BaseScoreError <= 0 || NetworkTrainingData.Count < MinTrainingData || DiffPerSampleNotNormalised < 0)
                 return -1;
             lock (NetworkLock)
             {
@@ -298,7 +302,7 @@ namespace SharpGenetics.Predictor
                     if (AcceptedPredictionsByGeneration[Generation] >= (double)NonElitePopulationSize * 0.5d)
                     {
                         //NetworkTrainingData.Clear();
-                        NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, MaxTrainingData));
+                        NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, NetworkTrainingData.Count));
                     }
                 }
                 
@@ -313,7 +317,7 @@ namespace SharpGenetics.Predictor
 
         public void TrainNetwork()
         {
-            if (NetworkTrainingData.Count < MaxTrainingData)
+            if (NetworkTrainingData.Count < MinTrainingData)
             {
                 NetworkAccuracy = -1;
                 return;
@@ -335,19 +339,21 @@ namespace SharpGenetics.Predictor
             };*/
             //var teacher = new LevenbergMarquardtLearning(Network);
 
-            NetworkTrainingData.Sort((a, b) => a.Outputs[0].CompareTo(b.Outputs[0]));
+            //NetworkTrainingData.Sort((a, b) => a.Outputs[0].CompareTo(b.Outputs[0]));
 
             double error = 0;
 
             var TrainingSet = new List<InputOutputPair>();
             var ValidationSet = new List<InputOutputPair>();
-            for(int i=0;i<MaxTrainingData;i++)
+            /*for(int i=0;i<MaxTrainingData;i++)
             {
                 if (i % 5 != 0)
                     TrainingSet.Add(NetworkTrainingData[i]);
                 else
                     ValidationSet.Add(NetworkTrainingData[i]);
-            }
+            }*/
+            TrainingSet.AddRange(NetworkTrainingData.Take(NetworkTrainingData.Count * 4 / 5));
+            ValidationSet.AddRange(NetworkTrainingData.Skip(NetworkTrainingData.Count * 4 / 5));
 
             for (int i = 0; i < TrainingEpochsPerGeneration; i++)
             {
@@ -355,12 +361,13 @@ namespace SharpGenetics.Predictor
                 {
                     //error += teacher.Run(In.Inputs.ToArray(), In.Outputs.ToArray());
                     error += teacher.RunEpoch(TrainingSet.Select(a => a.Inputs.ToArray()).ToArray(), TrainingSet.Select(a => a.Outputs.ToArray()).ToArray());
+                    
                 }
             }
 
-            ((DeepBeliefNetwork)Network).UpdateVisibleWeights();
+            //((DeepBeliefNetwork)Network).UpdateVisibleWeights();
 
-            error /= MaxTrainingData * 4 / 5;
+            error /= TrainingSet.Count * 4 / 5;
             error /= TrainingEpochsPerGeneration;
 
             double Diff = 0;
@@ -384,7 +391,7 @@ namespace SharpGenetics.Predictor
                 }
             }
 
-            DiffPerSample = Math.Max(Diff / (ValidationSet.Count * OutputLayer), DiffOnTraining / (MaxTrainingData * OutputLayer));
+            DiffPerSample = Math.Max(Diff / (ValidationSet.Count * OutputLayer), DiffOnTraining / (NetworkTrainingData.Count * OutputLayer));
 
             DiffPerSampleNotNormalised = DiffPerSample * (MaxOutputVal - MinOutputVal) + MinOutputVal;
 
