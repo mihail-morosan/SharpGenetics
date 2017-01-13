@@ -18,6 +18,23 @@ namespace SharpGenetics.BaseClasses
         public List<double> ThirdQuartileOfFitnesses = new List<double>();
         [DataMember]
         public List<double> MedianOfFitnesses = new List<double>();
+        [DataMember]
+        public List<int> FitnessCalculations = new List<int>();
+
+        private static object FitLock = new object();
+
+        public void AddFitnessCalculation(int Generation)
+        {
+            lock (FitLock)
+            {
+                while (Generation >= FitnessCalculations.Count)
+                {
+                    FitnessCalculations.Add(0);
+                }
+
+                FitnessCalculations[Generation]++;
+            }
+        }
 
         public void AddGeneration(List<double> Values)
         {
