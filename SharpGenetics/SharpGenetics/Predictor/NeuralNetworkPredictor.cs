@@ -29,7 +29,7 @@ namespace SharpGenetics.Predictor
             }
             for (int i = 0; i < Outputs.Count; i++)
             {
-                Outputs[i] = (Outputs[i] - MinOutput) / (MaxOutputVal - MinOutput);
+                Outputs[i] = Math.Min(1, (Outputs[i] - MinOutput) / (MaxOutputVal - MinOutput));
             }
         }
 
@@ -70,7 +70,7 @@ namespace SharpGenetics.Predictor
         [DataMember]
         double DiffPerSample = -1;
         [DataMember]
-        double DiffPerSampleNotNormalised = -1;
+        public double DiffPerSampleNotNormalised = -1;
 
         [DataMember]
         public int TrainingEpochsPerGeneration = 1;
@@ -302,7 +302,7 @@ namespace SharpGenetics.Predictor
                     if (AcceptedPredictionsByGeneration[Generation] >= (double)NonElitePopulationSize * 0.5d)
                     {
                         //NetworkTrainingData.Clear();
-                        NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, NetworkTrainingData.Count));
+                        //NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, NetworkTrainingData.Count));
                     }
                 }
                 

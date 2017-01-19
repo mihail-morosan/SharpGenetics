@@ -27,11 +27,11 @@ namespace SharpGenetics.BaseClasses
                 _parameters[key] = value;
         }
 
-        public object GetParameter(string key)
+        public object GetParameter(string key, object DefaultValue = null)
         {
             if (_parameters.ContainsKey(key))
             {
-                double t = 0;
+                double t = DefaultValue == null ? 0 : (double)DefaultValue;
                 if(!key.Substring(0,6).Equals("string") && Double.TryParse(""+_parameters[key], out t))
                 {
                     return t;
@@ -41,10 +41,10 @@ namespace SharpGenetics.BaseClasses
             {
                 if (!key.Substring(0, 6).Equals("string"))
                 {
-                    return 0.0d;
+                    return DefaultValue == null ? 0.0d : (double)DefaultValue;
                 } else
                 {
-                    return "";
+                    return DefaultValue == null ? "" : (string)DefaultValue;
                 }
             }
         }
