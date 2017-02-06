@@ -18,7 +18,7 @@ namespace SharpGenetics.BaseClasses
     public class PopulationManager<T, InputT, OutputT> where T : PopulationMember
     {
         [DataMember]
-        public NeuralNetworkPredictor Predictor;
+        public ResultPredictor<InputT, OutputT> Predictor;
         [DataMember]
         public CRandom rand;
         [DataMember]
@@ -181,14 +181,15 @@ namespace SharpGenetics.BaseClasses
             foreach(T Member in _nextGeneration)
                 _currentMembers.Add(Member);
             _nextGeneration.Clear();
-
-            if(UsePredictor)
-            {
-                int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
-                Predictor.AfterGeneration(GenerationsRun, _currentMembers.Count - ElitismCount, rand.Next());
-            }
             
             GenerationsRun++;
+            
+            if (UsePredictor)
+            {
+                List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
+                Predictor.AtStartOfGeneration(CMembers, RunMetrics.MedianOfFitnesses.LastOrDefault(), GenerationsRun);
+            }
+
         }
 
         /// <summary>
@@ -395,6 +396,15 @@ namespace SharpGenetics.BaseClasses
             }
 
             //test.Clear();
+
+            if (UsePredictor)
+            {
+                //int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
+
+                List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
+
+                Predictor.AfterGeneration(CMembers, GenerationsRun, _currentMembers.Count - ElitismCount, RunMetrics.AverageFitnesses.FirstOrDefault() / 10, rand.Next());
+            }
         }
 
         /// <summary>
@@ -404,7 +414,7 @@ namespace SharpGenetics.BaseClasses
         public void RegenerateMembers(bool UseTournamentSelection = false)
         {
             //int TSize = UseTournamentSelection ? (int)GetParameter("Par_TournamentSize") : 0;
-
+            
             GenerateMembersThroughCrossover((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_CrossoverRatio")));
 
             GenerateMembersThroughMutation((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_MutateRatio")));

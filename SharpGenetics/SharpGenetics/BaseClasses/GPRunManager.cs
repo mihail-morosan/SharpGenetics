@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using SharpGenetics.Logging;
+using SharpGenetics.Predictor;
 using SharpGenetics.SelectionAlgorithms;
 using System;
 using System.Collections.Generic;
@@ -45,8 +46,13 @@ namespace SharpGenetics.BaseClasses
 
         private static Type[] GetKnownType()
         {
-            Type openGenericType = typeof(SelectionAlgorithm);
-            Type openGenericType2 = typeof(FitnessComparer);
+            //Type openGenericType = typeof(SelectionAlgorithm);
+            //Type openGenericType2 = typeof(FitnessComparer);
+            Type[] openGenericTypes = {
+                typeof(SelectionAlgorithm)
+                ,typeof(FitnessComparer)
+                ,typeof(ResultPredictor<InputT,OutputT>)
+            };
             var res = new List<Type>();
 
             foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
@@ -59,9 +65,12 @@ namespace SharpGenetics.BaseClasses
 
                         if (!x.IsAbstract && !x.IsInterface && y != null)
                         {
-                            if (openGenericType.GUID == y.GUID || openGenericType2.GUID == y.GUID)
+                            foreach(var T in openGenericTypes)
                             {
-                                res.Add(x);
+                                if(T.GUID == y.GUID || (x.GetInterfaces().Count() > 0 && T.GUID == x.GetInterfaces()[0].GUID))
+                                {
+                                    res.Add(x);
+                                }
                             }
                         }
                     }
@@ -205,7 +214,7 @@ namespace SharpGenetics.BaseClasses
 
                         if ((GenerationsThisSubRun + NumberOfRuns >= GenerationsBeforePause) || ((CurrentGen + NumberOfRuns) % RefreshGenCount == 0 && RefreshGenCount > 0))
                         {
-                            pop.GetTopXMembers(1);
+                            //pop.GetTopXMembers(1);
                         }
 
                         doneEvents[(int)threadContext].Set();
@@ -317,7 +326,7 @@ namespace SharpGenetics.BaseClasses
             {
                 for (int y = 0; y < 1; y++)
                 {
-                    T best = pop.GetTopXMembers(1)[0];
+                    T best = pop.GetTopXMembers(1,true)[0];
 
                     ret.Add(best);
                 }

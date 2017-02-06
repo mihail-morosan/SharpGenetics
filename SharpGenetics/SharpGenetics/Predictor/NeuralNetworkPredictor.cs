@@ -1,6 +1,7 @@
 ﻿using Accord.Neuro;
 using Accord.Neuro.Learning;
 using Accord.Neuro.Networks;
+using SharpGenetics.BaseClasses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,7 +42,7 @@ namespace SharpGenetics.Predictor
     }
 
     [DataContract]
-    public class NeuralNetworkPredictor : ResultPredictor<List<double>, List<double>>
+    public class NeuralNetworkPredictor: ResultPredictor<List<double>, List<double>> 
     {
         public static readonly object NetworkLock = new object();
 
@@ -204,7 +205,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public override List<double> Predict(List<double> Input)
+        public  List<double> Predict(List<double> Input)
         {
             List<double> Result = new List<double>();
             lock (NetworkLock)
@@ -273,16 +274,8 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public override double GetAccuracy(double BaseScoreError)
+        public  double GetAccuracy()
         {
-            if (BaseScoreError <= 0 || NetworkTrainingData.Count < MinTrainingData || DiffPerSampleNotNormalised < 0)
-                return -1;
-            lock (NetworkLock)
-            {
-                var AggregateDiffPerSample = DiffPerSampleNotNormalisedHistory.Skip(Math.Max(DiffPerSampleNotNormalisedHistory.Count - 3, 0)).Average();
-                //NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / BaseScoreError);
-                NetworkAccuracy = 1.0d - (AggregateDiffPerSample / BaseScoreError);
-            }
             return NetworkAccuracy;
         }
 
@@ -291,28 +284,6 @@ namespace SharpGenetics.Predictor
             Accord.Statistics.Distributions.Univariate.NormalDistribution Dist = new Accord.Statistics.Distributions.Univariate.NormalDistribution(Mean, StdDev);
 
             return Dist.Generate(Samples).ToList();
-        }
-
-        public override void AfterGeneration(int Generation, int NonElitePopulationSize, int RandomSeed)
-        {
-            lock (NetworkLock)
-            {
-                if (AcceptedPredictionsByGeneration.Count > Generation && Generation >= 0)
-                {
-                    if (AcceptedPredictionsByGeneration[Generation] >= (double)NonElitePopulationSize * 0.5d)
-                    {
-                        //NetworkTrainingData.Clear();
-                        //NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, NetworkTrainingData.Count));
-                    }
-                }
-                
-                Accord.Math.Random.Generator.Seed = RandomSeed;
-
-                TrainNetwork();
-
-                if(DiffPerSampleNotNormalised >= 0)
-                    DiffPerSampleNotNormalisedHistory.Add(DiffPerSampleNotNormalised);
-            }
         }
 
         public void TrainNetwork()
@@ -398,6 +369,66 @@ namespace SharpGenetics.Predictor
             //NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / MaxThresholdVal);
             //NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData * 3 / 5) * 10); // /300 * 20000 / 2000 (divided by 100 samples and 3 vals per sample, multiplied by maxval, divided by what I want the base error to be)
 
+        }
+
+        public  void AtStartOfGeneration(List<PopulationMember> Population, double PredictionAcceptanceThreshold, int Generation)
+        {
+            //Go through each individual
+            //Set fitness if below threshold
+            if (GetAccuracy() > 0)
+            {
+                foreach (var Indiv in Population)
+                {
+                    var Result = Predict(Indiv.Vector);
+                    if (Result.Sum() >= PredictionAcceptanceThreshold && Indiv.Fitness < 0)
+                    {
+                        Indiv.Fitness = Result.Sum();
+                        Indiv.ObjectivesFitness = new List<double>(Result);
+                        Indiv.Predicted = true;
+                        IncrementPredictionCount(Generation, true);
+                    }
+                }
+            }
+        }
+
+        public  void AfterGeneration(List<PopulationMember> Population, int Generation, int NonElitePopulationSize, double BaseScoreError, int RandomSeed)
+        {
+            lock (NetworkLock)
+            {
+                foreach(var Indiv in Population)
+                {
+                    if(!Indiv.Predicted && Indiv.Fitness >= 0)
+                    {
+                        AddInputOutputToData(Indiv.Vector, Indiv.ObjectivesFitness);
+                    }
+                }
+
+                if (AcceptedPredictionsByGeneration.Count > Generation && Generation >= 0)
+                {
+                    if (AcceptedPredictionsByGeneration[Generation] >= (double)NonElitePopulationSize * 0.5d)
+                    {
+                        //NetworkTrainingData.Clear();
+                        //NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, NetworkTrainingData.Count));
+                    }
+                }
+
+                Accord.Math.Random.Generator.Seed = RandomSeed;
+
+                TrainNetwork();
+
+                if (DiffPerSampleNotNormalised >= 0)
+                    DiffPerSampleNotNormalisedHistory.Add(DiffPerSampleNotNormalised);
+
+                if (BaseScoreError <= 0 || NetworkTrainingData.Count < MinTrainingData || DiffPerSampleNotNormalised < 0)
+                    NetworkAccuracy = -1;
+                else
+                    NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / BaseScoreError);
+
+                //var AggregateDiffPerSample = DiffPerSampleNotNormalisedHistory.Skip(Math.Max(DiffPerSampleNotNormalisedHistory.Count - 3, 0)).Average();
+
+                //NetworkAccuracy = 1.0d - (AggregateDiffPerSample / BaseScoreError);
+
+            }
         }
     }
 }

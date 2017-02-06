@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharpGenetics.BaseClasses;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -7,13 +8,16 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.Predictor
 {
-    [DataContract]
-    public abstract class ResultPredictor<T, Z>
+    //[DataContract]
+    //public abstract class ResultPredictor<Input, Output, Indiv>
+    public interface ResultPredictor<Input, Output>
     {
-        public abstract T Predict(Z Input);
+          Output Predict(Input Input);
 
-        public abstract double GetAccuracy(double BaseScoreError);
+          double GetAccuracy();
 
-        public abstract void AfterGeneration(int Generation, int NonElitePopulationSize, int RandomSeed);
+          void AfterGeneration(List<PopulationMember> Population, int Generation, int NonElitePopulationSize, double BaseScoreError, int RandomSeed);
+
+          void AtStartOfGeneration(List<PopulationMember> Population, double PredictionAcceptanceThreshold, int Generation);
     }
 }

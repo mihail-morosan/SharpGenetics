@@ -66,6 +66,15 @@ namespace SharpGenetics.BaseClasses
         public abstract PopulationMember Clone();
 
         [DataMember]
+        public double Fitness = -1;
+
+        [DataMember]
+        public List<double> ObjectivesFitness = new List<double>();
+
+        [DataMember]
+        public List<double> Vector = new List<double>();
+
+        [DataMember]
         public CRandom rand;
 
         [DataMember]
@@ -73,6 +82,9 @@ namespace SharpGenetics.BaseClasses
 
         [DataMember]
         public int UpdatedAtGeneration = 0;
+
+        [DataMember]
+        public bool Predicted = false;
         
         public abstract PopulationManager<T, I, O> GetParentManager<T,I,O>() where T: PopulationMember;
 
