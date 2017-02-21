@@ -5,6 +5,7 @@ using SharpGenetics.SelectionAlgorithms;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -341,26 +342,61 @@ namespace SharpGenetics.BaseClasses
         public static RunParameters LoadParamsFromFile(string filename)
         {
             RunParameters rp = new RunParameters();
-            XmlReader xmlReader = XmlReader.Create(filename);
-            while (xmlReader.Read())
+            if (filename.Contains(".xml"))
             {
-                if ((xmlReader.Name.Substring(0, Math.Min(4, xmlReader.Name.Length)) == "Par_"))
+                XmlReader xmlReader = XmlReader.Create(filename);
+                while (xmlReader.Read())
                 {
-                    rp.AddToParameters(xmlReader.Name, double.Parse(xmlReader.GetAttribute(0)));
+                    if ((xmlReader.Name.Substring(0, Math.Min(4, xmlReader.Name.Length)) == "Par_"))
+                    {
+                        rp.AddToParameters(xmlReader.Name, double.Parse(xmlReader.GetAttribute(0)));
+                    }
+
+                    if ((xmlReader.Name.Substring(0, Math.Min(5, xmlReader.Name.Length)) == "extra"))
+                    {
+                        rp.AddToParameters(xmlReader.Name, double.Parse(xmlReader.GetAttribute(0)));
+                    }
+
+                    if ((xmlReader.Name.Substring(0, Math.Min(6, xmlReader.Name.Length)) == "string"))
+                    {
+                        rp.AddToParameters(xmlReader.Name, xmlReader.GetAttribute(0));
+                    }
                 }
 
-                if ((xmlReader.Name.Substring(0, Math.Min(5, xmlReader.Name.Length)) == "extra"))
-                {
-                    rp.AddToParameters(xmlReader.Name, double.Parse(xmlReader.GetAttribute(0)));
-                }
-
-                if ((xmlReader.Name.Substring(0, Math.Min(6, xmlReader.Name.Length)) == "string"))
-                {
-                    rp.AddToParameters(xmlReader.Name, xmlReader.GetAttribute(0));
-                }
+                xmlReader.Close();
             }
 
-            xmlReader.Close();
+            if(filename.Contains(".json"))
+            {
+                dynamic Specs = JsonConvert.DeserializeObject(File.ReadAllText(filename));
+
+                foreach(var property in Specs.gaparams.Properties())
+                {
+                    rp.AddToParameters(property.Name, (double)property.Value);
+                }
+
+                List<double> MinRange = new List<double>();
+                List<double> MaxRange = new List<double>();
+                List<double> Weights = new List<double>();
+                List<int> Minimise = new List<int>();
+                List<int> Accuracy = new List<int>();
+                foreach(var param in Specs.parameters)
+                {
+                    MinRange.Add((double)param.rangeMin);
+                    MaxRange.Add((double)param.rangeMax);
+                    Weights.Add((double)param.weight);
+                    Minimise.Add((int)param.minimise);
+                    Accuracy.Add((int)param.rangeAccuracy);
+                }
+
+                rp.AddToParameters("Par_Length", Specs.parameters.Count);
+
+                rp.AddToParameters("Params_MinRange", MinRange);
+                rp.AddToParameters("Params_MaxRange", MaxRange);
+                rp.AddToParameters("Params_Weights", Weights);
+                rp.AddToParameters("Params_Minimise", Minimise);
+                rp.AddToParameters("Params_Accuracy", Accuracy);
+            }
 
             return rp;
         }

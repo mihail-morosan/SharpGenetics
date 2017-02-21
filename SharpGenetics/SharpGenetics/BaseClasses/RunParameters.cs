@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.BaseClasses
 {
+    [KnownType(typeof(List<double>))]
+    [KnownType(typeof(List<int>))]
     [DataContractAttribute(IsReference=true)]
     public class RunParameters
     {
