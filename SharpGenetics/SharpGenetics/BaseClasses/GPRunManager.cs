@@ -295,7 +295,8 @@ namespace SharpGenetics.BaseClasses
 
                     Console.WriteLine(" REFRESH: Add instance");
 
-                    NewPop.AddToParameters("Instance", worstPop.GetParameter("Instance"));
+                    //NewPop.AddToParameters("Instance", worstPop.GetParameter("Instance"));
+                    NewPop.Instance = worstPop.Instance;
 
                     //Logger.Log("Removed " + Populations.IndexOf(worstPop) + " from Populations. It had " + worstFitness + " fitness");
 
