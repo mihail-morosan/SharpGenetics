@@ -45,7 +45,11 @@ namespace SharpGenetics.BaseClasses
         public SelectionAlgorithm SelectionAlgorithm;
 
         [DataMember]
-        private RunParameters _parameters;
+        public int Instance = 0;
+
+        //[DataMember]
+        //private RunParameters _parameters;
+        public GPRunManager<T, InputT, OutputT> Parent = null;
 
         [DataMember]
         private FitnessComparer FitnessComparer = null;
@@ -57,7 +61,7 @@ namespace SharpGenetics.BaseClasses
         /// <param name="value">Value of the parameter</param>
         public void AddToParameters(string key, object value)
         {
-            _parameters.AddToParameters(key, value);
+            Parent.Parameters.AddToParameters(key, value);
         }
 
         /// <summary>
@@ -67,12 +71,12 @@ namespace SharpGenetics.BaseClasses
         /// <returns>The value of the parameter requested</returns>
         public double GetParameter(string key)
         {
-            return (double)_parameters.GetParameter(key);
+            return (double)Parent.Parameters.GetParameter(key);
         }
 
         public RunParameters GetParameters()
         {
-            return _parameters;
+            return Parent.Parameters;
         }
 
         public int GetNumberOfIndividuals()
@@ -86,7 +90,7 @@ namespace SharpGenetics.BaseClasses
         /// <param name="RandomSeed">Value of the random seed. Used to "predict" the run, given an initial completely random population.</param>
         /// <param name="AllowDuplicates">Whether to allow duplicates or not.</param>
         /// <param name="ForceRandomLog">DEPRECATED</param>
-        public PopulationManager(int RandomSeed = 0, RunParameters Parameters = null, bool AllowDuplicates = false, bool ForceRandomLog = false)
+        public PopulationManager(GPRunManager<T, InputT, OutputT> Parent, int RandomSeed = 0, bool AllowDuplicates = false, bool ForceRandomLog = false)
         {
             _currentMembers = new List<T>();
             _nextGeneration = new List<T>();
@@ -98,12 +102,10 @@ namespace SharpGenetics.BaseClasses
             rand = new CRandom(RandomSeed, ForceRandomLog);
             RSeed = RandomSeed;
 
-            _parameters = Parameters;
+            this.Parent = Parent;
 
-            if (Parameters == null)
+            if (Parent.Parameters._parameters.Count == 0)
             {
-                _parameters = new RunParameters();
-
                 AddToParameters("Par_KeepEliteRatio", 0.05);
                 AddToParameters("Par_KeepRandRatio", 0.05);
                 AddToParameters("Par_MutateRatio", 0.1);
@@ -112,9 +114,9 @@ namespace SharpGenetics.BaseClasses
                 AddToParameters("Par_TournamentSize", 20);
             }
             
-            UsePredictor = (int)(double)_parameters.GetParameter("extra_use_predictor") == 1;
+            UsePredictor = (int)(double)Parent.Parameters.GetParameter("extra_use_predictor") == 1;
 
-            string FC = (string)_parameters.GetParameter("string_FitnessComparer");
+            string FC = (string)Parent.Parameters.GetParameter("string_FitnessComparer");
 
             if (FC == "")
             {

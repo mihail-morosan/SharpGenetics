@@ -56,7 +56,8 @@ namespace SharpGenetics.BaseClasses
             };
             var res = new List<Type>();
 
-            foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            var assembly = Assembly.GetExecutingAssembly();
+            //foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 try
                 {
@@ -128,11 +129,12 @@ namespace SharpGenetics.BaseClasses
 
             for (int i = 0; i < (int)(double)Parameters.GetParameter("Par_IslandClusters"); i++)
             {
-                RunParameters InstanceParams = Parameters.Clone();
-                InstanceParams.AddToParameters("Instance", i + 1);
+                //RunParameters InstanceParams = Parameters.Clone();
+                //InstanceParams.AddToParameters("Instance", i + 1);
+                
+                Populations.Add(new PopulationManager<T, InputT, OutputT>(this, mainRandom.Next(), false, false));
 
-                Populations.Add(new PopulationManager<T, InputT, OutputT>(mainRandom.Next(), InstanceParams, false, false));
-
+                Populations[i].Instance = i + 1;
                 Populations[i].SetTests(Tests);
                 Populations[i].GenerateRandomMembers();
                 Populations[i].FinalizeGeneration();
@@ -146,10 +148,16 @@ namespace SharpGenetics.BaseClasses
         {
             foreach(var Pop in Populations)
             {
+                Pop.Parent = this;
                 for(int i=0;i<Pop.GetNumberOfIndividuals();i++)
                 {
                     Pop.GetMember(i).ReloadParameters(Pop);
                 }
+            }
+
+            if (Parameters.JsonParameters.Length > 0)
+            {
+                Parameters.JsonParams = JsonConvert.DeserializeObject(Parameters.JsonParameters);
             }
         }
 
@@ -259,7 +267,7 @@ namespace SharpGenetics.BaseClasses
 
                     int _rand = mainRandom.Next();
 
-                    PopulationManager<T, InputT, OutputT> NewPop = new PopulationManager<T, InputT, OutputT>(_rand, Parameters.Clone(), false);
+                    PopulationManager<T, InputT, OutputT> NewPop = new PopulationManager<T, InputT, OutputT>(this, _rand, false);
 
                     NewPop.SetTests(Tests);
                     NewPop.SelectionAlgorithm = SelectionAlgorithm;
@@ -368,9 +376,12 @@ namespace SharpGenetics.BaseClasses
 
             if(filename.Contains(".json"))
             {
-                dynamic Specs = JsonConvert.DeserializeObject(File.ReadAllText(filename));
+                rp.JsonParameters = File.ReadAllText(filename);
+                rp.JsonParams = JsonConvert.DeserializeObject(rp.JsonParameters);
 
-                foreach(var property in Specs.gaparams.Properties())
+                rp.AddToParameters("string_SpecsFile", filename);
+
+                foreach(var property in rp.JsonParams.gaparams.Properties())
                 {
                     rp.AddToParameters(property.Name, (double)property.Value);
                 }
@@ -380,22 +391,50 @@ namespace SharpGenetics.BaseClasses
                 List<double> Weights = new List<double>();
                 List<int> Minimise = new List<int>();
                 List<int> Accuracy = new List<int>();
-                foreach(var param in Specs.parameters)
+                foreach(var param in rp.JsonParams.parameters)
                 {
                     MinRange.Add((double)param.rangeMin);
                     MaxRange.Add((double)param.rangeMax);
                     Weights.Add((double)param.weight);
-                    Minimise.Add((int)param.minimise);
+
+                    switch ((string)param.minimise)
+                    {
+                        case "minimise":
+                            Minimise.Add(1);
+                            break;
+                        case "ignore":
+                            Minimise.Add(0);
+                            break;
+                        case "maximise":
+                            Minimise.Add(-1);
+                            break;
+                        default:
+                            break;
+                    }
+
                     Accuracy.Add((int)param.rangeAccuracy);
                 }
 
-                rp.AddToParameters("Par_Length", Specs.parameters.Count);
+                rp.AddToParameters("Par_Length", rp.JsonParams.parameters.Count);
 
                 rp.AddToParameters("Params_MinRange", MinRange);
                 rp.AddToParameters("Params_MaxRange", MaxRange);
                 rp.AddToParameters("Params_Weights", Weights);
                 rp.AddToParameters("Params_Minimise", Minimise);
                 rp.AddToParameters("Params_Accuracy", Accuracy);
+
+                if(rp.JsonParams.bridge.type == "local")
+                {
+                    rp.AddToParameters("string_Bridge_Type", "local");
+                    rp.AddToParameters("string_Bridge_Local_Exe", (string)rp.JsonParams.bridge.executable);
+                } else
+                {
+                    rp.AddToParameters("string_Bridge_Type", "remote");
+                    rp.AddToParameters("string_Bridge_Remote_Server", (string)rp.JsonParams.bridge.server);
+                    rp.AddToParameters("string_Bridge_Remote_Port", (string)rp.JsonParams.bridge.port);
+                    rp.AddToParameters("string_Bridge_Remote_Username", (string)rp.JsonParams.bridge.username);
+                    rp.AddToParameters("string_Bridge_Remote_Password", (string)rp.JsonParams.bridge.password);
+                }
             }
 
             return rp;

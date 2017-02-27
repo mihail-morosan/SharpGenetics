@@ -15,6 +15,11 @@ namespace SharpGenetics.BaseClasses
     {
         [DataMember]
         public ObservableDictionary<string, object> _parameters { get; set; }
+        
+        [DataMember]
+        public string JsonParameters = "";
+
+        public dynamic JsonParams = null;
 
         public RunParameters()
         {
@@ -58,6 +63,8 @@ namespace SharpGenetics.BaseClasses
             {
                 clone.AddToParameters(key, _parameters[key]);
             }
+            clone.JsonParameters = JsonParameters;
+            clone.JsonParams = JsonParams;
             return clone;
         }
     }

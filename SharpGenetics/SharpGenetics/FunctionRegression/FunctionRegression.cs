@@ -23,8 +23,6 @@ namespace SharpGenetics.FunctionRegression
         [DataMember]
         public Dictionary<String, double> vars = new Dictionary<string, double>();
         [DataMember]
-        public double Fitness = -1;
-        [DataMember]
         int Depth = 1;
         [DataMember]
         public String CreatedBy = "";
