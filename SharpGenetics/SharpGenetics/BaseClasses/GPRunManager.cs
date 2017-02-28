@@ -387,44 +387,15 @@ namespace SharpGenetics.BaseClasses
                     rp.AddToParameters(property.Name, (double)property.Value);
                 }
 
-                List<double> MinRange = new List<double>();
-                List<double> MaxRange = new List<double>();
-                List<double> Weights = new List<double>();
-                List<int> Minimise = new List<int>();
-                List<int> Accuracy = new List<int>();
+                /*int Length = 0;
                 foreach(var param in rp.JsonParams.parameters)
                 {
-                    MinRange.Add((double)param.rangeMin);
-                    MaxRange.Add((double)param.rangeMax);
-                    Weights.Add((double)param.weight);
-
-                    switch ((string)param.minimise)
-                    {
-                        case "minimise":
-                            Minimise.Add(1);
-                            break;
-                        case "ignore":
-                            Minimise.Add(0);
-                            break;
-                        case "maximise":
-                            Minimise.Add(-1);
-                            break;
-                        default:
-                            break;
-                    }
-
-                    Accuracy.Add((int)param.rangeAccuracy);
+                    Length += (int)param.enabled == 1 ? 1 : 0;
                 }
 
-                rp.AddToParameters("Par_Length", rp.JsonParams.parameters.Count);
+                rp.AddToParameters("Par_Length", Length);*/
 
-                rp.AddToParameters("Params_MinRange", MinRange);
-                rp.AddToParameters("Params_MaxRange", MaxRange);
-                rp.AddToParameters("Params_Weights", Weights);
-                rp.AddToParameters("Params_Minimise", Minimise);
-                rp.AddToParameters("Params_Accuracy", Accuracy);
-
-                if(rp.JsonParams.bridge.type == "local")
+                if (rp.JsonParams.bridge.type == "local")
                 {
                     rp.AddToParameters("string_Bridge_Type", "local");
                     rp.AddToParameters("string_Bridge_Local_Exe", (string)rp.JsonParams.bridge.executable);
