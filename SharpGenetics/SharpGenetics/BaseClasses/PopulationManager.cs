@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using PropertyChanged;
 using SharpGenetics.Logging;
 using SharpGenetics.Predictor;
 using SharpGenetics.SelectionAlgorithms;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.BaseClasses
 {
+    [ImplementPropertyChanged]
     [DataContractAttribute(IsReference = true)]
     [JsonObject(IsReference = true)]
     //[KnownType("GetKnownType")]
@@ -36,7 +38,7 @@ namespace SharpGenetics.BaseClasses
 
         [DataMember]
         //public List<double> AverageFitnessByGeneration;
-        public RunMetrics RunMetrics;
+        public RunMetrics RunMetrics { get; set; }
 
         [DataMember]
         private List<GenericTest<InputT, OutputT>> _tests;
@@ -189,7 +191,7 @@ namespace SharpGenetics.BaseClasses
             if (UsePredictor)
             {
                 List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
-                Predictor.AtStartOfGeneration(CMembers, RunMetrics.MedianOfFitnesses.LastOrDefault(), GenerationsRun);
+                Predictor.AtStartOfGeneration(CMembers, RunMetrics.MedianOfFitnesses.LastOrDefault().Value, GenerationsRun);
             }
 
         }
@@ -405,7 +407,7 @@ namespace SharpGenetics.BaseClasses
 
                 List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
 
-                Predictor.AfterGeneration(CMembers, GenerationsRun, _currentMembers.Count - ElitismCount, RunMetrics.AverageFitnesses.FirstOrDefault() / 10, rand.Next());
+                Predictor.AfterGeneration(CMembers, GenerationsRun, _currentMembers.Count - ElitismCount, RunMetrics.AverageFitnesses.FirstOrDefault().Value / 10, rand.Next());
             }
         }
 

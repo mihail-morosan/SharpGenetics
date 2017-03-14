@@ -1,9 +1,11 @@
 ﻿using Newtonsoft.Json;
+using PropertyChanged;
 using SharpGenetics.Logging;
 using SharpGenetics.Predictor;
 using SharpGenetics.SelectionAlgorithms;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -20,6 +22,8 @@ namespace SharpGenetics.BaseClasses
     /// <typeparam name="T">PopulationMember type to evolve</typeparam>
     /// <typeparam name="InputT">Input type it requires in tests</typeparam>
     /// <typeparam name="OutputT">Output type it requires in tests</typeparam>
+    /// 
+    [ImplementPropertyChanged]
     [DataContractAttribute]
     [KnownType("GetKnownType")]
     public class GPRunManager<T, InputT, OutputT> where T : PopulationMember
@@ -32,7 +36,7 @@ namespace SharpGenetics.BaseClasses
         [DataMember]
         public CRandom mainRandom;
         [DataMember]
-        private int CurrentGen = 0;
+        private int CurrentGen { get; set; }
         [DataMember]
         public int RandomSeed = -1;
 
@@ -40,7 +44,7 @@ namespace SharpGenetics.BaseClasses
         private List<GenericTest<InputT, OutputT>> Tests = null;
 
         [DataMember]
-        public List<PopulationManager<T, InputT, OutputT>> Populations = new List<PopulationManager<T, InputT, OutputT>>();
+        public ObservableCollection<PopulationManager<T, InputT, OutputT>> Populations { get; set; }
 
         [DataMember]
         private SelectionAlgorithm SelectionAlgorithm;
@@ -97,6 +101,8 @@ namespace SharpGenetics.BaseClasses
         [JsonConstructor]
         public GPRunManager(RunParameters Parameters, List<GenericTest<InputT, OutputT>> Tests, int RandomSeed = -1)
         {
+            this.CurrentGen = 0;
+            this.Populations = new ObservableCollection<PopulationManager<T, InputT, OutputT>>();
             this.Parameters = Parameters;
             this.RandomSeed = RandomSeed;
             mainRandom = new CRandom(RandomSeed != -1 ? RandomSeed : (int)(double)Parameters.GetParameter("Par_Seed"));

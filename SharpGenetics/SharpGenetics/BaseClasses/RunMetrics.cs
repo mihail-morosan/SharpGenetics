@@ -1,5 +1,8 @@
-﻿using System;
+﻿using GeneticAlgorithm.Helpers;
+using PropertyChanged;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -7,21 +10,47 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.BaseClasses
 {
+    [ImplementPropertyChanged]
+    [DataContract]
+    public class MetricPoint
+    {
+        [DataMember]
+        public int Generation { get; set; }
+        [DataMember]
+        public double Value { get; set; }
+
+        public MetricPoint(int Gen, double Val)
+        {
+            Generation = Gen;
+            Value = Val;
+        }
+    }
+
+    [ImplementPropertyChanged]
     [DataContract]
     public class RunMetrics
     {
         [DataMember]
-        public List<double> AverageFitnesses = new List<double>();
+        public AsyncObservableCollection<MetricPoint> AverageFitnesses { get; set; }
         [DataMember]
-        public List<double> BestFitnesses = new List<double>();
+        public AsyncObservableCollection<MetricPoint> BestFitnesses { get; set; }
         [DataMember]
-        public List<double> ThirdQuartileOfFitnesses = new List<double>();
+        public AsyncObservableCollection<MetricPoint> ThirdQuartileOfFitnesses { get; set; }
         [DataMember]
-        public List<double> MedianOfFitnesses = new List<double>();
+        public AsyncObservableCollection<MetricPoint> MedianOfFitnesses { get; set; }
         [DataMember]
-        public List<int> FitnessCalculations = new List<int>();
+        public AsyncObservableCollection<MetricPoint> FitnessCalculations { get; set; }
 
         private static object FitLock = new object();
+
+        public RunMetrics()
+        {
+            AverageFitnesses = new AsyncObservableCollection<MetricPoint>();
+            BestFitnesses = new AsyncObservableCollection<MetricPoint>();
+            ThirdQuartileOfFitnesses = new AsyncObservableCollection<MetricPoint>();
+            MedianOfFitnesses = new AsyncObservableCollection<MetricPoint>();
+            FitnessCalculations = new AsyncObservableCollection<MetricPoint>();
+    }
 
         public void AddFitnessCalculation(int Generation)
         {
@@ -29,10 +58,10 @@ namespace SharpGenetics.BaseClasses
             {
                 while (Generation >= FitnessCalculations.Count)
                 {
-                    FitnessCalculations.Add(0);
+                    FitnessCalculations.Add(new MetricPoint(Generation, 0));
                 }
 
-                FitnessCalculations[Generation]++;
+                FitnessCalculations[Generation].Value++;
             }
         }
 
@@ -41,10 +70,11 @@ namespace SharpGenetics.BaseClasses
             if (Values.Count == 0)
                 return;
             var Sorted = GetSortedList(Values);
-            AverageFitnesses.Add(Sorted.Average());
-            BestFitnesses.Add(Sorted[0]);
-            ThirdQuartileOfFitnesses.Add(GetThirdQuartile(Sorted));
-            MedianOfFitnesses.Add(GetMedian(Sorted));
+            int Gen = AverageFitnesses.Count;
+            AverageFitnesses.Add(new MetricPoint(Gen, Sorted.Average()));
+            BestFitnesses.Add(new MetricPoint(Gen, Sorted[0]));
+            ThirdQuartileOfFitnesses.Add(new MetricPoint(Gen, GetThirdQuartile(Sorted)));
+            MedianOfFitnesses.Add(new MetricPoint(Gen, GetMedian(Sorted)));
         }
 
         public static List<double> GetSortedList(List<double> Values)
