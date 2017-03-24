@@ -66,7 +66,37 @@ namespace SharpGenetics.BaseClasses
         public abstract PopulationMember Clone();
 
         [DataMember]
-        public double Fitness = -1;
+        public double Fitness
+        {
+            get
+            {
+                if (ObjectivesFitness != null && ObjectivesFitness.Count > 0)
+                {
+                    return ObjectivesFitness.Sum();
+                } else
+                {
+                    return -1;
+                }
+            }
+            set
+            {
+                if(ObjectivesFitness != null && ObjectivesFitness.Count <= 1)
+                {
+                    if(ObjectivesFitness.Count == 1)
+                    {
+                        ObjectivesFitness[0] = value;
+                    }
+                    if(ObjectivesFitness.Count == 0)
+                    {
+                        ObjectivesFitness.Add(value);
+                    }
+                } else
+                {
+                    ObjectivesFitness = new List<double>();
+                    ObjectivesFitness.Add(value);
+                }
+            }
+        }
 
         [DataMember]
         public List<double> ObjectivesFitness = new List<double>();
