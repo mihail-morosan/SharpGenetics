@@ -142,8 +142,8 @@ namespace SharpGenetics.BaseClasses
 
                 Populations[i].Instance = i + 1;
                 Populations[i].SetTests(Tests);
-                Populations[i].GenerateRandomMembers();
-                Populations[i].FinalizeGeneration();
+                //Populations[i].GenerateRandomMembers();
+                //Populations[i].FinalizeGeneration();
                 Populations[i].SelectionAlgorithm = SelectionAlgorithm;
             }
 

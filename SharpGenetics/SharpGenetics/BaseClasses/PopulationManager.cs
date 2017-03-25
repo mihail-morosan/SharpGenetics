@@ -175,25 +175,12 @@ namespace SharpGenetics.BaseClasses
         /// </summary>
         public void FinalizeGeneration()
         {
-            if (GenerationsRun >= 0)
-            {
-                var fitnesses = _currentMembers.Select(x => x.GetFitness()).ToList();
-                RunMetrics.AddGeneration(fitnesses);
-            }
-
             _currentMembers.Clear();
             foreach(T Member in _nextGeneration)
                 _currentMembers.Add(Member);
             _nextGeneration.Clear();
             
             GenerationsRun++;
-            
-            if (UsePredictor)
-            {
-                List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
-                Predictor.AtStartOfGeneration(CMembers, RunMetrics.MedianOfFitnesses.LastOrDefault().Value, GenerationsRun);
-            }
-
         }
 
         /// <summary>
@@ -359,7 +346,7 @@ namespace SharpGenetics.BaseClasses
             ElitismCount = Math.Min(ElitismCount, _currentMembers.Count);
             Total = Math.Min(Total, _currentMembers.Count);
 
-            SortAll();
+            //SortAll();
 
             for (int i = 0; i < ElitismCount;i++)
             {
@@ -400,15 +387,6 @@ namespace SharpGenetics.BaseClasses
             }
 
             //test.Clear();
-
-            if (UsePredictor)
-            {
-                //int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
-
-                List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
-
-                Predictor.AfterGeneration(CMembers, GenerationsRun, _currentMembers.Count - ElitismCount, RunMetrics.AverageFitnesses.FirstOrDefault().Value / 10, rand.Next());
-            }
         }
 
         /// <summary>
@@ -426,34 +404,27 @@ namespace SharpGenetics.BaseClasses
             GenerateRandomMembers();
 
             FinalizeGeneration();
+
+            if (UsePredictor)
+            {
+                List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
+                Predictor.AtStartOfGeneration(CMembers, RunMetrics.MedianOfFitnesses.LastOrDefault().Value, GenerationsRun);
+            }
+
+            SortAll();
+
+            var fitnesses = _currentMembers.Select(x => x.GetFitness()).ToList();
+            RunMetrics.AddGeneration(fitnesses);
+
+            if (UsePredictor)
+            {
+                //int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
+
+                List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
+
+                Predictor.AfterGeneration(CMembers, GenerationsRun, RunMetrics.AverageFitnesses.FirstOrDefault().Value / 10, rand.Next());
+            }
         }
-
-        /// <summary>
-        /// Selects a member through a tournament.
-        /// </summary>
-        /// <param name="TournamentSize">The size of the tournament</param>
-        /// <returns></returns>
-        /*public T SelectMemberTournament(int TournamentSize)
-        {
-            if(TournamentSize < 1 || _currentMembers.Count < 1)
-                return default(T);
-            List<T> Tournament = new List<T>();
-            for(int i=0;i<TournamentSize;i++)
-            {
-                Tournament.Add(_currentMembers.ElementAt(rand.Next(_currentMembers.Count)));
-            }
-            T BestMember = Tournament[0];
-            for(int i=1;i<TournamentSize;i++)
-            {
-                double Fit = Tournament[i].CalculateFitness(this.GenerationsRun, _tests.ToArray());
-                if(Tournament[i].CalculateFitness(this.GenerationsRun, _tests.ToArray()) < BestMember.CalculateFitness(this.GenerationsRun, _tests.ToArray()))
-                {
-                    BestMember = Tournament[i];
-                }
-            }
-
-            return BestMember;
-        } */
 
         /// <summary>
         /// Generates random members until the population is full.

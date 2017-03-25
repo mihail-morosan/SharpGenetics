@@ -391,7 +391,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public  void AfterGeneration(List<PopulationMember> Population, int Generation, int NonElitePopulationSize, double BaseScoreError, int RandomSeed)
+        public  void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError, int RandomSeed)
         {
             lock (NetworkLock)
             {
@@ -400,15 +400,6 @@ namespace SharpGenetics.Predictor
                     if(!Indiv.Predicted && Indiv.Fitness >= 0)
                     {
                         AddInputOutputToData(Indiv.Vector, Indiv.ObjectivesFitness);
-                    }
-                }
-
-                if (AcceptedPredictionsByGeneration.Count > Generation && Generation >= 0)
-                {
-                    if (AcceptedPredictionsByGeneration[Generation] >= (double)NonElitePopulationSize * 0.5d)
-                    {
-                        //NetworkTrainingData.Clear();
-                        //NetworkTrainingData.RemoveRange(0, Math.Min(NonElitePopulationSize, NetworkTrainingData.Count));
                     }
                 }
 
