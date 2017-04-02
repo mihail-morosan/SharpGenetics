@@ -137,22 +137,19 @@ namespace SharpGenetics.Predictor
             SetupNN();
         }
 
-        public NeuralNetworkPredictor(int InputLayerCount, int HiddenLayerCount, int OutputLayerCount, 
-            double MinInputVal, double MaxInputVal, 
-            double MinOutputVal, double MaxOutputVal,
-            int MinTrainingData, int MaxTrainingData,
-            int TrainingEpochs, int RandomSeed)
+        public NeuralNetworkPredictor(RunParameters Parameters, int RandomSeed)
         {
-            InputLayer = InputLayerCount;
-            HiddenLayer = HiddenLayerCount;
-            OutputLayer = OutputLayerCount;
-            this.MinVal = MinInputVal;
-            this.MaxVal = MaxInputVal;
-            this.MinOutputVal = MinOutputVal;
-            this.MaxOutputVal = MaxOutputVal;
-            this.MaxTrainingData = MaxTrainingData;
-            this.MinTrainingData = MinTrainingData;
-            this.TrainingEpochsPerGeneration = TrainingEpochs;
+            //TODO
+            InputLayer = (int)(double)Parameters.GetParameter("extra_Predictor_InputLayerCount"); //change to vector length
+            HiddenLayer = (int)(double)Parameters.GetParameter("extra_Predictor_HiddenLayerCount");
+            OutputLayer = (int)(double)Parameters.GetParameter("extra_Predictor_OutputLayerCount"); //change to evaluator count
+            this.MinVal = (int)(double)Parameters.GetParameter("extra_Predictor_MinInputVal"); //change to the ones in the params
+            this.MaxVal = (int)(double)Parameters.GetParameter("extra_Predictor_MaxInputVal"); //as above
+            this.MinOutputVal = (int)(double)Parameters.GetParameter("extra_Predictor_MinOutputVal"); //as above
+            this.MaxOutputVal = (int)(double)Parameters.GetParameter("extra_Predictor_MaxOutputVal"); //as above
+            this.MaxTrainingData = (int)(double)Parameters.GetParameter("extra_Predictor_MaxTrainingData"); 
+            this.MinTrainingData = (int)(double)Parameters.GetParameter("extra_Predictor_MinTrainingData");
+            this.TrainingEpochsPerGeneration = (int)(double)Parameters.GetParameter("extra_Predictor_TrainingEpochs");
 
             Accord.Math.Random.Generator.Seed = RandomSeed;
 

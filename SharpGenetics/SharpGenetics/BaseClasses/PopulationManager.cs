@@ -104,6 +104,11 @@ namespace SharpGenetics.BaseClasses
             rand = new CRandom(RandomSeed, ForceRandomLog);
             RSeed = RandomSeed;
 
+            ReloadParameters(Parent);
+        }
+
+        public void ReloadParameters(GPRunManager<T, InputT, OutputT> Parent)
+        {
             this.Parent = Parent;
 
             if (Parent.Parameters._parameters.Count == 0)
@@ -115,8 +120,9 @@ namespace SharpGenetics.BaseClasses
                 AddToParameters("Par_MaxPopMembers", 1000);
                 AddToParameters("Par_TournamentSize", 20);
             }
-            
-            UsePredictor = (int)(double)Parent.Parameters.GetParameter("extra_use_predictor") == 1;
+
+            //UsePredictor = (int)(double)Parent.Parameters.GetParameter("extra_use_predictor") == 1;
+            UsePredictor = (bool)Parent.Parameters.GetParameter("extra_use_predictor");
 
             string FC = (string)Parent.Parameters.GetParameter("string_FitnessComparer");
 
@@ -125,9 +131,20 @@ namespace SharpGenetics.BaseClasses
                 FC = "SharpGenetics.BaseClasses.DefaultDoubleFitnessComparer,SharpGenetics";
             }
 
-            if(FitnessComparer == null)
+            if (FitnessComparer == null)
             {
                 FitnessComparer = (FitnessComparer)Activator.CreateInstance(Type.GetType(FC), new object[] { });
+            }
+
+            //Reload predictor
+            //TODO change
+            if (UsePredictor)
+            {
+                string PredictorType = "SharpGenetics.Predictor." + (string)Parent.Parameters.GetParameter("string_PredictorType") + ",SharpGenetics";
+
+                var Pred = (ResultPredictor<InputT, OutputT>)Activator.CreateInstance(Type.GetType(PredictorType), new object[] { Parent.Parameters, rand.Next() });
+
+                Predictor = Pred;
             }
         }
 
@@ -405,7 +422,7 @@ namespace SharpGenetics.BaseClasses
 
             FinalizeGeneration();
 
-            if (UsePredictor)
+            if (UsePredictor && GenerationsRun > 0)
             {
                 List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
                 Predictor.AtStartOfGeneration(CMembers, RunMetrics.MedianOfFitnesses.LastOrDefault().Value, GenerationsRun);

@@ -152,18 +152,18 @@ namespace SharpGenetics.BaseClasses
 
         public void ReloadParameters()
         {
-            foreach(var Pop in Populations)
+            if (Parameters.JsonParameters.Length > 0)
             {
-                Pop.Parent = this;
+                Parameters.JsonParams = JsonConvert.DeserializeObject(Parameters.JsonParameters);
+            }
+
+            foreach (var Pop in Populations)
+            {
+                Pop.ReloadParameters(this);
                 for(int i=0;i<Pop.GetNumberOfIndividuals();i++)
                 {
                     Pop.GetMember(i).ReloadParameters(Pop);
                 }
-            }
-
-            if (Parameters.JsonParameters.Length > 0)
-            {
-                Parameters.JsonParams = JsonConvert.DeserializeObject(Parameters.JsonParameters);
             }
         }
 
@@ -390,7 +390,7 @@ namespace SharpGenetics.BaseClasses
 
                 foreach(var property in rp.JsonParams.gaparams.Properties())
                 {
-                    rp.AddToParameters(property.Name, (double)property.Value);
+                    rp.AddToParameters(property.Name, property.Value.Value);
                 }
 
                 /*int Length = 0;
