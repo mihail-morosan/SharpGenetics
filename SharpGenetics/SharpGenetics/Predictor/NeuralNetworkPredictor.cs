@@ -139,21 +139,10 @@ namespace SharpGenetics.Predictor
 
         public NeuralNetworkPredictor(RunParameters Parameters, int RandomSeed)
         {
-            int InputLayerSize = 0;
             MinVal.Clear();
             MaxVal.Clear();
-            MinOutputVal.Clear(); //TODO make these dynamic based on first few generations
+            MinOutputVal.Clear();
             MaxOutputVal.Clear();
-            foreach(var P in Parameters.JsonParams.parameters)
-            {
-                if(P.enabled.Value)
-                {
-                    InputLayerSize++;
-                    MinVal.Add(P.rangeMin.Value);
-                    MaxVal.Add(P.rangeMax.Value);
-                }
-            }
-            InputLayer = InputLayerSize;
 
             int OutputLayerSize = 0;
             foreach(var E in Parameters.JsonParams.evaluators)
@@ -162,8 +151,29 @@ namespace SharpGenetics.Predictor
                 {
                     OutputLayerSize++;
                     MinOutputVal.Add(0);
+                    MaxOutputVal.Add(0);
                 }
             }
+
+            int InputLayerSize = 0;
+            foreach (var P in Parameters.JsonParams.parameters)
+            {
+                if (P.enabled.Value)
+                {
+                    InputLayerSize++;
+                    MinVal.Add(P.rangeMin.Value);
+                    MaxVal.Add(P.rangeMax.Value);
+
+                    if(P.minimise.Value != "ignore")
+                    {
+                        OutputLayerSize++;
+                        MinOutputVal.Add(0);
+                        MaxOutputVal.Add(Math.Max(Math.Abs((double)P.rangeMin * (double)P.weight), Math.Abs((double)P.rangeMax * (double)P.weight)));
+                    }
+                }
+            }
+            InputLayer = InputLayerSize;
+
             OutputLayer = OutputLayerSize;
 
             HiddenLayer = (int)(double)Parameters.GetParameter("extra_Predictor_HiddenLayerCount");
@@ -214,7 +224,14 @@ namespace SharpGenetics.Predictor
             //Maybe only add different inputs / outputs?
             lock (NetworkLock)
             {
+                //Add max outputs to MaxOutputVal
+                for(int i=0;i<Outputs.Count;i++)
+                {
+                    MaxOutputVal[i] = Math.Max(MaxOutputVal[i], Outputs[i]);
+                }
+
                 NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs, MinVal, MinOutputVal, MaxVal, MaxOutputVal));
+
                 if (NetworkTrainingData.Count > MaxTrainingData)
                 {
                     NetworkTrainingData.RemoveAt(0);
@@ -222,7 +239,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public  List<double> Predict(List<double> Input)
+        public List<double> Predict(List<double> Input)
         {
             List<double> Result = new List<double>();
             lock (NetworkLock)
@@ -358,15 +375,15 @@ namespace SharpGenetics.Predictor
             error /= TrainingSet.Count * 4 / 5;
             error /= TrainingEpochsPerGeneration;
 
-            double Diff = 0;
-            double DiffOnTraining = 0;
+            List<double> Diff = new List<double>(new double[OutputLayer]);
+            List<double> DiffOnTraining = new List<double>(new double[OutputLayer]);
 
             foreach (var In in ValidationSet)
             {
                 var outputVal = Network.Compute(In.Inputs.ToArray());
                 for (int i = 0; i < In.Outputs.Count; i++)
                 {
-                    Diff += Math.Abs(In.Outputs[i] - outputVal[i]);
+                    Diff[i] += Math.Abs(In.Outputs[i] - outputVal[i]);
                 }
             }
 
@@ -375,17 +392,18 @@ namespace SharpGenetics.Predictor
                 var outputVal = Network.Compute(In.Inputs.ToArray());
                 for (int i = 0; i < In.Outputs.Count; i++)
                 {
-                    DiffOnTraining += Math.Abs(In.Outputs[i] - outputVal[i]);
+                    DiffOnTraining[i] += Math.Abs(In.Outputs[i] - outputVal[i]);
                 }
             }
 
-            DiffPerSample = Math.Max(Diff / (ValidationSet.Count * OutputLayer), DiffOnTraining / (NetworkTrainingData.Count * OutputLayer));
+            DiffPerSample = Math.Max(Diff.Sum() / (ValidationSet.Count * OutputLayer), DiffOnTraining.Sum() / (NetworkTrainingData.Count * OutputLayer));
 
-            DiffPerSampleNotNormalised = DiffPerSample * (MaxOutputVal[0] - MinOutputVal[0]) + MinOutputVal[0]; //TODO: change to per objective
+            DiffPerSampleNotNormalised = 0;
 
-            //NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / MaxThresholdVal);
-            //NetworkAccuracy = 1.0d - (Diff / (MaxTrainingData * 3 / 5) * 10); // /300 * 20000 / 2000 (divided by 100 samples and 3 vals per sample, multiplied by maxval, divided by what I want the base error to be)
-
+            for (int i = 0; i < OutputLayer; i++)
+            {
+                DiffPerSampleNotNormalised += Diff[i] * (MaxOutputVal[i] - MinOutputVal[i]) + MinOutputVal[i];
+            }
         }
 
         public  void AtStartOfGeneration(List<PopulationMember> Population, double PredictionAcceptanceThreshold, int Generation)
