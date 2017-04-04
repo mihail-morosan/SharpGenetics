@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using SharpGenetics.BaseClasses;
 using Accord.MachineLearning;
 using Accord.Statistics;
+using SharpGenetics.Helpers;
 
 namespace SharpGenetics.Predictor
 {
@@ -26,6 +27,10 @@ namespace SharpGenetics.Predictor
         double FirstQuart = 0;
         [DataMember]
         double ThirdQuart = 0;
+
+        [DataMember]
+        [ImportantParameter("extra_Predictor_KNN_ThresholdClass")]
+        public int ThresholdClass { get; set; }
 
         public KNNPredictor(RunParameters Parameters, int RandomSeed)
         {
@@ -83,13 +88,30 @@ namespace SharpGenetics.Predictor
             foreach (var Indiv in Population)
             {
                 var Result = Predict(Indiv.Vector);
-                if (Result.Sum() > Median && Indiv.Fitness < 0) // 0 -> (0,FirstQuart); 1 -> (FirstQuart,Median); 2 -> (Median,ThirdQuart); 3 -> (ThirdQuart,Infinity)
+                if (PassesThresholdCheck(Result.Sum()) && Indiv.Fitness < 0) // 0 -> (0,FirstQuart); 1 -> (FirstQuart,Median); 2 -> (Median,ThirdQuart); 3 -> (ThirdQuart,Infinity)
                 {
                     Indiv.Fitness = Result.Sum();
                     Indiv.ObjectivesFitness = new List<double>(Result);
                     Indiv.Predicted = true;
                     //IncrementPredictionCount(Generation, true);
                 }
+            }
+        }
+
+        public bool PassesThresholdCheck(double Fitness)
+        {
+            switch (ThresholdClass)
+            {
+                case 0:
+                    return true;
+                case 1:
+                    return Fitness > FirstQuart;
+                case 2:
+                    return Fitness > Median;
+                case 3:
+                    return Fitness > ThirdQuart;
+                default:
+                    return false;
             }
         }
 
