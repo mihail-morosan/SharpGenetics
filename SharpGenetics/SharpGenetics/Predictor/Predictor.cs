@@ -14,8 +14,6 @@ namespace SharpGenetics.Predictor
     {
           Output Predict(Input Input);
 
-          double GetAccuracy();
-
           void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError, int RandomSeed);
 
           void AtStartOfGeneration(List<PopulationMember> Population, double PredictionAcceptanceThreshold, int Generation);

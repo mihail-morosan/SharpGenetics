@@ -11,36 +11,6 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.Predictor
 {
-    [DataContractAttribute]
-    public class InputOutputPair
-    {
-        public InputOutputPair()
-        {
-            Inputs = new List<double>();
-            Outputs = new List<double>();
-        }
-
-        public InputOutputPair(List<double> In, List<double> Out, List<double> MinVal, List<double> MinOutput, List<double> MaxVal, List<double> MaxOutputVal)
-        {
-            Inputs = new List<double>(In);
-            Outputs = new List<double>(Out);
-            for (int i = 0; i < Inputs.Count; i++)
-            {
-                Inputs[i] = (Inputs[i] - MinVal[i]) / (MaxVal[i] - MinVal[i]);
-            }
-            for (int i = 0; i < Outputs.Count; i++)
-            {
-                Outputs[i] = Math.Min(1, (Outputs[i] - MinOutput[i]) / (MaxOutputVal[i] - MinOutput[i]));
-            }
-        }
-
-        [DataMember]
-        public List<double> Inputs;
-
-        [DataMember]
-        public List<double> Outputs;
-    }
-
     [DataContract]
     public class NeuralNetworkPredictor: ResultPredictor<List<double>, List<double>> 
     {
@@ -230,7 +200,7 @@ namespace SharpGenetics.Predictor
                     MaxOutputVal[i] = Math.Max(MaxOutputVal[i], Outputs[i]);
                 }
 
-                NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs, MinVal, MinOutputVal, MaxVal, MaxOutputVal));
+                NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs));
 
                 if (NetworkTrainingData.Count > MaxTrainingData)
                 {
@@ -244,11 +214,11 @@ namespace SharpGenetics.Predictor
             List<double> Result = new List<double>();
             lock (NetworkLock)
             {
-                List<double> NewInput = new List<double>(Input);
-                for (int i = 0; i < NewInput.Count; i++)
+                List<double> NewInput = InputOutputPair.Normalise(Input, MinVal, MaxVal);
+                /*for (int i = 0; i < NewInput.Count; i++)
                 {
                     NewInput[i] = (NewInput[i] - MinVal[i]) / (MaxVal[i] - MinVal[i]);
-                }
+                }*/
                 Result = Network.Compute(NewInput.ToArray()).ToList();
             }
             for (int i = 0; i < Result.Count; i++)
@@ -365,8 +335,10 @@ namespace SharpGenetics.Predictor
                 //foreach (var In in TrainingSet)
                 {
                     //error += teacher.Run(In.Inputs.ToArray(), In.Outputs.ToArray());
-                    error += teacher.RunEpoch(TrainingSet.Select(a => a.Inputs.ToArray()).ToArray(), TrainingSet.Select(a => a.Outputs.ToArray()).ToArray());
-                    
+                    error += teacher.RunEpoch(
+                        TrainingSet.Select(a => InputOutputPair.Normalise(a.Inputs, MinVal, MaxVal).ToArray()).ToArray(), 
+                        TrainingSet.Select(a => InputOutputPair.Normalise(a.Outputs, MinOutputVal, MaxOutputVal).ToArray()).ToArray()
+                        );
                 }
             }
 
