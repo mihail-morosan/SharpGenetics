@@ -2,6 +2,7 @@
 using Accord.Neuro.Learning;
 using Accord.Neuro.Networks;
 using SharpGenetics.BaseClasses;
+using SharpGenetics.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,13 +21,16 @@ namespace SharpGenetics.Predictor
         [DataMember]
         public int InputLayer = 1;
         [DataMember]
-        public int HiddenLayer = 10;
+        [ImportantParameter("extra_Predictor_HiddenLayerCount")]
+        public int HiddenLayer { get; set; }
         [DataMember]
         public int OutputLayer = 3;
         [DataMember]
-        public int MaxTrainingData = 100;
+        [ImportantParameter("extra_Predictor_MaxTrainingData")]
+        public int MaxTrainingData { get; set; }
         [DataMember]
-        public int MinTrainingData = 100;
+        [ImportantParameter("extra_Predictor_MinTrainingData")]
+        public int MinTrainingData { get; set; }
 
         [DataMember]
         public List<double> MaxVal = new List<double>();
@@ -43,8 +47,9 @@ namespace SharpGenetics.Predictor
         [DataMember]
         public double DiffPerSampleNotNormalised = -1;
 
+        [ImportantParameter("extra_Predictor_TrainingEpochs")]
         [DataMember]
-        public int TrainingEpochsPerGeneration = 1;
+        public int TrainingEpochsPerGeneration { get; set; }
 
         [DataMember]
         public List<double> DiffPerSampleNotNormalisedHistory = new List<double>();
