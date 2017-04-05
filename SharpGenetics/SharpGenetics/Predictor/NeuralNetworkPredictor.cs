@@ -21,16 +21,20 @@ namespace SharpGenetics.Predictor
         [DataMember]
         public int InputLayer = 1;
         [DataMember]
-        [ImportantParameter("extra_Predictor_HiddenLayerCount")]
+        public int OutputLayer = 3;
+
+        [DataMember]
+        [ImportantParameter("extra_Predictor_HiddenLayerCount", "Hidden Layer Count", 1, 200, 1)]
         public int HiddenLayer { get; set; }
         [DataMember]
-        public int OutputLayer = 3;
-        [DataMember]
-        [ImportantParameter("extra_Predictor_MaxTrainingData")]
+        [ImportantParameter("extra_Predictor_MaxTrainingData", "Maximum Training Data Stored", 1, 1000, 100)]
         public int MaxTrainingData { get; set; }
         [DataMember]
-        [ImportantParameter("extra_Predictor_MinTrainingData")]
+        [ImportantParameter("extra_Predictor_MinTrainingData", "Minimum Training Data Needed", 1, 1000, 100)]
         public int MinTrainingData { get; set; }
+        [DataMember]
+        [ImportantParameter("extra_Predictor_TrainingEpochs", "Training Epochs Per Generation", 1, 1000, 100)]
+        public int TrainingEpochsPerGeneration { get; set; }
 
         [DataMember]
         public List<double> MaxVal = new List<double>();
@@ -46,10 +50,6 @@ namespace SharpGenetics.Predictor
         double DiffPerSample = -1;
         [DataMember]
         public double DiffPerSampleNotNormalised = -1;
-
-        [ImportantParameter("extra_Predictor_TrainingEpochs")]
-        [DataMember]
-        public int TrainingEpochsPerGeneration { get; set; }
 
         [DataMember]
         public List<double> DiffPerSampleNotNormalisedHistory = new List<double>();

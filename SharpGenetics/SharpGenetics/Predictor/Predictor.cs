@@ -22,17 +22,17 @@ namespace SharpGenetics.Predictor
 
     public static class PredictorHelper
     {
-        public static List<string> GetParametersRequired(Type PredictorType)
+        public static List<ImportantParameterAttribute> GetParametersRequired(Type PredictorType)
         {
             var type = PredictorType;
             var properties = type.GetProperties()
                 .Where(prop => prop.IsDefined(typeof(ImportantParameterAttribute), false));
 
-            var results = properties.Select(prop => ((ImportantParameterAttribute)prop.GetCustomAttributes(typeof(ImportantParameterAttribute), false)[0]).ParameterName);
+            var results = properties.Select(prop => ((ImportantParameterAttribute)prop.GetCustomAttributes(typeof(ImportantParameterAttribute), false)[0]));
             return results.ToList();
         }
 
-        public static List<string> GetParametersRequired(string PredictorType)
+        public static List<ImportantParameterAttribute> GetParametersRequired(string PredictorType)
         {
             var type = Type.GetType("SharpGenetics.Predictor." + PredictorType + ",SharpGenetics");
             return GetParametersRequired(type);

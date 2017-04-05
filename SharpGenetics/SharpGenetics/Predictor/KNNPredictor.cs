@@ -29,7 +29,7 @@ namespace SharpGenetics.Predictor
         double ThirdQuart = 0;
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_KNN_ThresholdClass")]
+        [ImportantParameter("extra_Predictor_KNN_ThresholdClass", "Threshold Class For Accepting Predictions", 0, 3, 2)]
         public int ThresholdClass { get; set; }
 
         public KNNPredictor(RunParameters Parameters, int RandomSeed)
