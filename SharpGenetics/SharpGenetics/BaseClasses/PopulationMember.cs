@@ -99,10 +99,10 @@ namespace SharpGenetics.BaseClasses
         }
 
         [DataMember]
-        public List<double> ObjectivesFitness = new List<double>();
+        public List<double> ObjectivesFitness { get; set; }
 
         [DataMember]
-        public List<double> Vector = new List<double>();
+        public List<double> Vector { get; set; }
 
         [DataMember]
         public CRandom rand;

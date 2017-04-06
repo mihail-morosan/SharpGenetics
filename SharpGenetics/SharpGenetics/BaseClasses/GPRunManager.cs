@@ -36,7 +36,7 @@ namespace SharpGenetics.BaseClasses
         [DataMember]
         public CRandom mainRandom;
         [DataMember]
-        private int CurrentGen { get; set; }
+        public int CurrentGen { get; set; }
         [DataMember]
         public int RandomSeed = -1;
 
@@ -48,6 +48,19 @@ namespace SharpGenetics.BaseClasses
 
         [DataMember]
         private SelectionAlgorithm SelectionAlgorithm;
+
+        public T BestIndividualSoFar
+        {
+            get
+            {
+                if (Populations.Count > 0 && CurrentGen > 0)
+                {
+                    return GetBestMembers()[0];
+                }
+                return null;
+                //return new BalanceGA(null, new List<double>());
+            }
+        }
 
         private static Type[] GetKnownType()
         {
