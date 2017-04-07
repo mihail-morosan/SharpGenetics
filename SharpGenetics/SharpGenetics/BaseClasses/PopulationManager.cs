@@ -138,7 +138,7 @@ namespace SharpGenetics.BaseClasses
 
             //Reload predictor
             //TODO change
-            if (UsePredictor)
+            if (UsePredictor && Predictor == null)
             {
                 string PredictorType = "SharpGenetics.Predictor." + (string)Parent.Parameters.GetParameter("string_PredictorType") + ",SharpGenetics";
 

@@ -17,7 +17,7 @@ namespace SharpGenetics.Predictor
         [DataMember]
         public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
 
-        private object NetworkLock = new object();
+        public static readonly object NetworkLock = new object();
 
         KNearestNeighbors knn = null; //TODO: maybe one for each output?
 
@@ -33,6 +33,12 @@ namespace SharpGenetics.Predictor
         public int ThresholdClass { get; set; }
 
         public KNNPredictor(RunParameters Parameters, int RandomSeed)
+        {
+            ThresholdClass = (int)(double)Parameters.GetParameter("extra_Predictor_KNN_ThresholdClass");
+        }
+
+        [OnDeserialized]
+        private void OnDeserialized(StreamingContext context)
         {
             
         }
@@ -78,13 +84,12 @@ namespace SharpGenetics.Predictor
                 FirstQuart = 0;
                 ThirdQuart = 0;
                 Median = AllFitnesses.Quartiles(out FirstQuart, out ThirdQuart, false);
-
-                knn = new KNearestNeighbors(k: 5, classes: 4, inputs: NetworkTrainingData.Select(e => e.Inputs.ToArray()).ToArray(), outputs: NetworkTrainingData.Select(e => ClassifyOutputs(e.Outputs,FirstQuart,Median,ThirdQuart)).ToArray());
             }
         }
 
         public void AtStartOfGeneration(List<PopulationMember> Population, double PredictionAcceptanceThreshold, int Generation)
         {
+            knn = new KNearestNeighbors(k: 5, classes: 4, inputs: NetworkTrainingData.Select(e => e.Inputs.ToArray()).ToArray(), outputs: NetworkTrainingData.Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart)).ToArray());
             foreach (var Indiv in Population)
             {
                 var Result = Predict(Indiv.Vector);

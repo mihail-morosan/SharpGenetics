@@ -136,8 +136,8 @@ namespace SharpGenetics.Predictor
                 if (P.enabled.Value)
                 {
                     InputLayerSize++;
-                    MinVal.Add(P.rangeMin.Value);
-                    MaxVal.Add(P.rangeMax.Value);
+                    MinVal.Add((double)P.rangeMin);
+                    MaxVal.Add((double)P.rangeMax);
 
                     if(P.minimise.Value != "ignore")
                     {
@@ -357,10 +357,11 @@ namespace SharpGenetics.Predictor
 
             foreach (var In in ValidationSet)
             {
+                var origOutputVal = InputOutputPair.Normalise(In.Outputs, MinOutputVal, MaxOutputVal);
                 var outputVal = Network.Compute(In.Inputs.ToArray());
                 for (int i = 0; i < In.Outputs.Count; i++)
                 {
-                    Diff[i] += Math.Abs(In.Outputs[i] - outputVal[i]);
+                    Diff[i] += Math.Abs(origOutputVal[i] - outputVal[i]);
                 }
             }
 
@@ -379,7 +380,7 @@ namespace SharpGenetics.Predictor
 
             for (int i = 0; i < OutputLayer; i++)
             {
-                DiffPerSampleNotNormalised += Diff[i] * (MaxOutputVal[i] - MinOutputVal[i]) + MinOutputVal[i];
+                DiffPerSampleNotNormalised += (Diff[i] / (ValidationSet.Count * OutputLayer)) * (MaxOutputVal[i] - MinOutputVal[i]) + MinOutputVal[i];
             }
         }
 
