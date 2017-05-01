@@ -3,6 +3,7 @@ using SharpGenetics.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
@@ -36,6 +37,21 @@ namespace SharpGenetics.Predictor
         {
             var type = Type.GetType("SharpGenetics.Predictor." + PredictorType + ",SharpGenetics");
             return GetParametersRequired(type);
+        }
+
+        public static void ApplyPropertiesToPredictor<T>(object Predictor, RunParameters Parameters)
+        {
+            Type PredictorType = typeof(T);
+            var Attributes = GetParametersRequired(PredictorType);
+
+            T Pred = (T)Predictor;
+
+            foreach(var Attribute in Attributes)
+            {
+                PropertyInfo propInfo = PredictorType.GetProperty(Attribute.PropertyName);
+                double Value = (double)Parameters.GetParameter(Attribute.ParameterName);
+                propInfo.SetValue(Predictor, Convert.ChangeType(Value, propInfo.PropertyType));
+            }
         }
     }
 }

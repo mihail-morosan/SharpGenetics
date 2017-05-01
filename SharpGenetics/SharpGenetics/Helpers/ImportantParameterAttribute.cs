@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,13 +9,14 @@ namespace SharpGenetics.Helpers
 {
     public class ImportantParameterAttribute : Attribute
     {
-        public ImportantParameterAttribute(string ParameterName, string FriendlyName = "", double RangeMin = -1, double RangeMax = -1, double Default = -1)
+        public ImportantParameterAttribute(string ParameterName = "", string FriendlyName = "", double RangeMin = -1, double RangeMax = -1, double Default = -1, [CallerMemberName] string propertyName = null)
         {
             this.ParameterName = ParameterName;
             this.FriendlyName = FriendlyName.Length > 0 ? FriendlyName : ParameterName;
             this.RangeMin = RangeMin;
             this.RangeMax = RangeMax;
             this.Default = Default;
+            this.PropertyName = propertyName;
         }
 
         private string _parameterName = "";
@@ -33,5 +35,6 @@ namespace SharpGenetics.Helpers
         public double RangeMin { get; set; }
         public double RangeMax { get; set; }
         public double Default { get; set; }
+        public string PropertyName { get; set; }
     }
 }

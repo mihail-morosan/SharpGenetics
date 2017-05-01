@@ -114,6 +114,8 @@ namespace SharpGenetics.Predictor
 
         public NeuralNetworkPredictor(RunParameters Parameters, int RandomSeed)
         {
+            PredictorHelper.ApplyPropertiesToPredictor<NeuralNetworkPredictor>(this, Parameters);
+
             MinVal.Clear();
             MaxVal.Clear();
             MinOutputVal.Clear();
@@ -150,11 +152,6 @@ namespace SharpGenetics.Predictor
             InputLayer = InputLayerSize;
 
             OutputLayer = OutputLayerSize;
-
-            HiddenLayer = (int)(double)Parameters.GetParameter("extra_Predictor_HiddenLayerCount");
-            this.MaxTrainingData = (int)(double)Parameters.GetParameter("extra_Predictor_MaxTrainingData"); 
-            this.MinTrainingData = (int)(double)Parameters.GetParameter("extra_Predictor_MinTrainingData");
-            this.TrainingEpochsPerGeneration = (int)(double)Parameters.GetParameter("extra_Predictor_TrainingEpochs");
 
             Accord.Math.Random.Generator.Seed = RandomSeed;
 

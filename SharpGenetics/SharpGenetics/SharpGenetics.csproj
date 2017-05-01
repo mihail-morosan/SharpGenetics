@@ -90,6 +90,7 @@
     <Compile Include="Predictor\KNNPredictor.cs" />
     <Compile Include="Predictor\NeuralNetworkPredictor.cs" />
     <Compile Include="Predictor\Predictor.cs" />
+    <Compile Include="Predictor\WeightedTrainingSet.cs" />
     <Compile Include="SelectionAlgorithms\SelectionAlgorithm.cs" />
     <Compile Include="FunctionRegression\FunctionRegression.cs" />
     <Compile Include="FunctionRegression\XNodes.cs" />

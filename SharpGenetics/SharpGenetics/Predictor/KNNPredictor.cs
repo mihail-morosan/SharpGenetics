@@ -15,7 +15,8 @@ namespace SharpGenetics.Predictor
     public class KNNPredictor : ResultPredictor<List<double>, List<double>>
     {
         [DataMember]
-        public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
+        //public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
+        public WeightedTrainingSet NetworkTrainingData;
 
         public static readonly object NetworkLock = new object();
 
@@ -32,9 +33,23 @@ namespace SharpGenetics.Predictor
         [ImportantParameter("extra_Predictor_KNN_ThresholdClass", "Threshold Class For Accepting Predictions", 0, 3, 2)]
         public int ThresholdClass { get; set; }
 
+        [DataMember]
+        [ImportantParameter("extra_Predictor_KNN_TrainingDataHigh", "Training Data High Values Capacity", 0, 200, 25)]
+        public int TrainingDataHighCount { get; set; }
+
+        [DataMember]
+        [ImportantParameter("extra_Predictor_KNN_TrainingDataLow", "Training Data Low Values Capacity", 0, 200, 25)]
+        public int TrainingDataLowCount { get; set; }
+
+        [DataMember]
+        [ImportantParameter("extra_Predictor_KNN_TrainingDataTotal", "Training Data Total Capacity", 0, 200, 100)]
+        public int TrainingDataTotalCount { get; set; }
+
         public KNNPredictor(RunParameters Parameters, int RandomSeed)
         {
-            ThresholdClass = (int)(double)Parameters.GetParameter("extra_Predictor_KNN_ThresholdClass");
+            PredictorHelper.ApplyPropertiesToPredictor<KNNPredictor>(this, Parameters);
+            //ThresholdClass = (int)(double)Parameters.GetParameter("extra_Predictor_KNN_ThresholdClass");
+            NetworkTrainingData = new WeightedTrainingSet(TrainingDataHighCount, TrainingDataLowCount, TrainingDataTotalCount);
         }
 
         [OnDeserialized]
@@ -48,7 +63,7 @@ namespace SharpGenetics.Predictor
             //Maybe only add different inputs / outputs?
             lock (NetworkLock)
             {
-                NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs));
+                NetworkTrainingData.AddIndividualToTrainingSet(new InputOutputPair(ParamsToSend, Outputs));
             }
         }
 
@@ -89,7 +104,8 @@ namespace SharpGenetics.Predictor
 
         public void AtStartOfGeneration(List<PopulationMember> Population, double PredictionAcceptanceThreshold, int Generation)
         {
-            knn = new KNearestNeighbors(k: 5, classes: 4, inputs: NetworkTrainingData.Select(e => e.Inputs.ToArray()).ToArray(), outputs: NetworkTrainingData.Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart)).ToArray());
+            var TrainingData = NetworkTrainingData.GetAllValues();
+            knn = new KNearestNeighbors(k: 5, classes: 4, inputs: TrainingData.Select(e => e.Inputs.ToArray()).ToArray(), outputs: TrainingData.Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart)).ToArray());
             foreach (var Indiv in Population)
             {
                 var Result = Predict(Indiv.Vector);
