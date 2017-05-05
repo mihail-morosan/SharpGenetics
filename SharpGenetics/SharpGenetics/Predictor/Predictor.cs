@@ -18,7 +18,7 @@ namespace SharpGenetics.Predictor
 
         void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError, int RandomSeed);
 
-        void AtStartOfGeneration(List<PopulationMember> Population, double PredictionAcceptanceThreshold, int Generation);
+        void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation);
     }
 
     public static class PredictorHelper

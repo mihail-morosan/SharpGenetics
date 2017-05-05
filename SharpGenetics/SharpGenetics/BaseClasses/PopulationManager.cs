@@ -425,7 +425,7 @@ namespace SharpGenetics.BaseClasses
             if (UsePredictor && GenerationsRun > 0)
             {
                 List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
-                Predictor.AtStartOfGeneration(CMembers, RunMetrics.MedianOfFitnesses.LastOrDefault().Value, GenerationsRun);
+                Predictor.AtStartOfGeneration(CMembers, RunMetrics, GenerationsRun);
             }
 
             SortAll();

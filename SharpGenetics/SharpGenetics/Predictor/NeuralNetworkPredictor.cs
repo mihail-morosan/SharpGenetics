@@ -37,6 +37,14 @@ namespace SharpGenetics.Predictor
         public int TrainingEpochsPerGeneration { get; set; }
 
         [DataMember]
+        [ImportantParameter("extra_Predictor_LowerThreshold", "Lower Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 100)]
+        public int LowerBoundForPredictionThreshold { get; set; }
+
+        [DataMember]
+        [ImportantParameter("extra_Predictor_UpperThreshold", "Upper Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 100)]
+        public int UpperBoundForPredictionThreshold { get; set; }
+
+        [DataMember]
         public List<double> MaxVal = new List<double>();
         [DataMember]
         public List<double> MinVal = new List<double>();
@@ -381,18 +389,52 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public  void AtStartOfGeneration(List<PopulationMember> Population, double PredictionAcceptanceThreshold, int Generation)
+        public  void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
         {
             //Go through each individual
             //Set fitness if below threshold
             if (GetAccuracy() > 0)
             {
+                double LowerPredThreshold = 0;
+                double UpperPredThreshold = double.PositiveInfinity;
+
+                switch (LowerBoundForPredictionThreshold)
+                {
+                    case 1:
+                        LowerPredThreshold = RunMetrics.FirstQuartileOfFitnesses.LastOrDefault().Value;
+                        break;
+                    case 2:
+                        LowerPredThreshold = RunMetrics.MedianOfFitnesses.LastOrDefault().Value;
+                        break;
+                    case 3:
+                        LowerPredThreshold = RunMetrics.ThirdQuartileOfFitnesses.LastOrDefault().Value;
+                        break;
+                    default:
+                        break;
+                }
+
+                switch (UpperBoundForPredictionThreshold)
+                {
+                    case 1:
+                        UpperPredThreshold = RunMetrics.FirstQuartileOfFitnesses.LastOrDefault().Value;
+                        break;
+                    case 2:
+                        UpperPredThreshold = RunMetrics.MedianOfFitnesses.LastOrDefault().Value;
+                        break;
+                    case 3:
+                        UpperPredThreshold = RunMetrics.ThirdQuartileOfFitnesses.LastOrDefault().Value;
+                        break;
+                    default:
+                        break;
+                }
+
                 foreach (var Indiv in Population)
                 {
                     var Result = Predict(Indiv.Vector);
-                    if (Result.Sum() >= PredictionAcceptanceThreshold && Indiv.Fitness < 0)
+                    var Sum = Result.Sum();
+                    if (Indiv.Fitness < 0 && Sum >= LowerPredThreshold && Sum <= UpperPredThreshold)
                     {
-                        Indiv.Fitness = Result.Sum();
+                        Indiv.Fitness = Sum;
                         Indiv.ObjectivesFitness = new List<double>(Result);
                         Indiv.Predicted = true;
                         IncrementPredictionCount(Generation, true);

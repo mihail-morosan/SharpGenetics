@@ -37,6 +37,8 @@ namespace SharpGenetics.BaseClasses
         [DataMember]
         public AsyncObservableCollection<MetricPoint> ThirdQuartileOfFitnesses { get; set; }
         [DataMember]
+        public AsyncObservableCollection<MetricPoint> FirstQuartileOfFitnesses { get; set; }
+        [DataMember]
         public AsyncObservableCollection<MetricPoint> MedianOfFitnesses { get; set; }
         [DataMember]
         public AsyncObservableCollection<MetricPoint> FitnessCalculations { get; set; }
@@ -48,6 +50,7 @@ namespace SharpGenetics.BaseClasses
             AverageFitnesses = new AsyncObservableCollection<MetricPoint>();
             BestFitnesses = new AsyncObservableCollection<MetricPoint>();
             ThirdQuartileOfFitnesses = new AsyncObservableCollection<MetricPoint>();
+            FirstQuartileOfFitnesses = new AsyncObservableCollection<MetricPoint>();
             MedianOfFitnesses = new AsyncObservableCollection<MetricPoint>();
             FitnessCalculations = new AsyncObservableCollection<MetricPoint>();
     }
@@ -74,6 +77,7 @@ namespace SharpGenetics.BaseClasses
             AverageFitnesses.Add(new MetricPoint(Gen, Sorted.Average()));
             BestFitnesses.Add(new MetricPoint(Gen, Sorted[0]));
             ThirdQuartileOfFitnesses.Add(new MetricPoint(Gen, GetThirdQuartile(Sorted)));
+            FirstQuartileOfFitnesses.Add(new MetricPoint(Gen, GetFirstQuartile(Sorted)));
             MedianOfFitnesses.Add(new MetricPoint(Gen, GetMedian(Sorted)));
         }
 
@@ -90,6 +94,14 @@ namespace SharpGenetics.BaseClasses
             Accord.Statistics.Measures.Quartiles(Values.ToArray(), out range, true);
 
             return range.Max;
+        }
+
+        public static double GetFirstQuartile(List<double> Values)
+        {
+            Accord.DoubleRange range;
+            Accord.Statistics.Measures.Quartiles(Values.ToArray(), out range, true);
+
+            return range.Min;
         }
 
         public static double GetMedian(List<double> Values)

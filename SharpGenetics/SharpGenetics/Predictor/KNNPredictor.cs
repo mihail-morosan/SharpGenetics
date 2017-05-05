@@ -102,7 +102,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public void AtStartOfGeneration(List<PopulationMember> Population, double PredictionAcceptanceThreshold, int Generation)
+        public void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
         {
             var TrainingData = NetworkTrainingData.GetAllValues();
             knn = new KNearestNeighbors(k: 5, classes: 4, inputs: TrainingData.Select(e => e.Inputs.ToArray()).ToArray(), outputs: TrainingData.Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart)).ToArray());
