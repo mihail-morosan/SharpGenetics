@@ -21,6 +21,17 @@ namespace SharpGenetics.Predictor
         void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation);
     }
 
+    public class NameValuePair
+    {
+        public dynamic Value { get; set; }
+        public ImportantParameterAttribute Name { get; set; }
+        public NameValuePair(ImportantParameterAttribute N, dynamic V)
+        {
+            Name = N;
+            Value = V;
+        }
+    }
+
     public static class PredictorHelper
     {
         public static List<ImportantParameterAttribute> GetParametersRequired(Type PredictorType)
@@ -52,6 +63,25 @@ namespace SharpGenetics.Predictor
                 double Value = (double)Parameters.GetParameter(Attribute.ParameterName);
                 propInfo.SetValue(Predictor, Convert.ChangeType(Value, propInfo.PropertyType));
             }
+        }
+
+        public static List<NameValuePair> ApplyPredictorPropertiesToJsonDynamicAndReturnObjects(dynamic JsonObject, string PredictorType)
+        {
+            var Params = PredictorHelper.GetParametersRequired(PredictorType);
+            List<NameValuePair> JObjects = new List<NameValuePair>();
+
+            foreach (var Param in Params)
+            {
+                var ParamName = Param.ParameterName;
+                if (JsonObject.gaparams[ParamName] == null)
+                {
+                    //Add it first
+                    JsonObject.gaparams[ParamName] = Param.Default;
+                }
+                JObjects.Add(new NameValuePair(Param, JsonObject.gaparams[ParamName]));
+            }
+
+            return JObjects;
         }
     }
 }

@@ -37,11 +37,11 @@ namespace SharpGenetics.Predictor
         public int TrainingEpochsPerGeneration { get; set; }
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_LowerThreshold", "Lower Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 100)]
+        [ImportantParameter("extra_Predictor_LowerThreshold", "Lower Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 0)]
         public int LowerBoundForPredictionThreshold { get; set; }
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_UpperThreshold", "Upper Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 100)]
+        [ImportantParameter("extra_Predictor_UpperThreshold", "Upper Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 0)]
         public int UpperBoundForPredictionThreshold { get; set; }
 
         [DataMember]

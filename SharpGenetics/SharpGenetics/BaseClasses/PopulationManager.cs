@@ -412,8 +412,9 @@ namespace SharpGenetics.BaseClasses
         /// <param name="UseTournamentSelection">Whether to use tournament selection or not during member selection</param>
         public void RegenerateMembers(bool UseTournamentSelection = false)
         {
+            int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
             //int TSize = UseTournamentSelection ? (int)GetParameter("Par_TournamentSize") : 0;
-            
+
             GenerateMembersThroughCrossover((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_CrossoverRatio")));
 
             GenerateMembersThroughMutation((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_MutateRatio")));
@@ -430,8 +431,11 @@ namespace SharpGenetics.BaseClasses
 
             SortAll();
 
+            int evaluations = _currentMembers.Count(p => !p.Predicted) - ElitismCount;
+
+
             var fitnesses = _currentMembers.Select(x => x.GetFitness()).ToList();
-            RunMetrics.AddGeneration(fitnesses);
+            RunMetrics.AddGeneration(fitnesses, evaluations);
 
             if (UsePredictor)
             {

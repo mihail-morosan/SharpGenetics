@@ -42,6 +42,8 @@ namespace SharpGenetics.BaseClasses
         public AsyncObservableCollection<MetricPoint> MedianOfFitnesses { get; set; }
         [DataMember]
         public AsyncObservableCollection<MetricPoint> FitnessCalculations { get; set; }
+        [DataMember]
+        public AsyncObservableCollection<MetricPoint> TotalFitnessCalculations { get; set; }
 
         private static object FitLock = new object();
 
@@ -53,9 +55,10 @@ namespace SharpGenetics.BaseClasses
             FirstQuartileOfFitnesses = new AsyncObservableCollection<MetricPoint>();
             MedianOfFitnesses = new AsyncObservableCollection<MetricPoint>();
             FitnessCalculations = new AsyncObservableCollection<MetricPoint>();
-    }
+            TotalFitnessCalculations = new AsyncObservableCollection<MetricPoint>();
+        }
 
-        public void AddFitnessCalculation(int Generation)
+        /*public void AddFitnessCalculation(int Generation)
         {
             lock (FitLock)
             {
@@ -66,9 +69,9 @@ namespace SharpGenetics.BaseClasses
 
                 FitnessCalculations[Generation].Value++;
             }
-        }
+        }*/
 
-        public void AddGeneration(List<double> Values)
+        public void AddGeneration(List<double> Values, int Evaluations)
         {
             if (Values.Count == 0)
                 return;
@@ -79,6 +82,16 @@ namespace SharpGenetics.BaseClasses
             ThirdQuartileOfFitnesses.Add(new MetricPoint(Gen, GetThirdQuartile(Sorted)));
             FirstQuartileOfFitnesses.Add(new MetricPoint(Gen, GetFirstQuartile(Sorted)));
             MedianOfFitnesses.Add(new MetricPoint(Gen, GetMedian(Sorted)));
+
+            FitnessCalculations.Add(new MetricPoint(Gen,Evaluations));
+
+            int PrevEval = 0;
+            if(Gen > 0)
+            {
+                PrevEval = (int)TotalFitnessCalculations[Gen - 1].Value;
+            }
+
+            TotalFitnessCalculations.Add(new MetricPoint(Gen, Evaluations + PrevEval));
         }
 
         public static List<double> GetSortedList(List<double> Values)
