@@ -363,7 +363,7 @@ namespace SharpGenetics.BaseClasses
             ElitismCount = Math.Min(ElitismCount, _currentMembers.Count);
             Total = Math.Min(Total, _currentMembers.Count);
 
-            //SortAll();
+            SortAll();
 
             for (int i = 0; i < ElitismCount;i++)
             {
