@@ -295,7 +295,9 @@ namespace SharpGenetics.BaseClasses
             //Threaded fitness calculation
             ManualResetEvent[] doneEvents = new ManualResetEvent[_currentMembers.Count];
 
-            int MaxThreads = 16;
+            int MaxThreads = (int)GetParameter("Par_MaxParallelThreads");
+
+            MaxThreads = MaxThreads == 0 ? 16 : MaxThreads;
 
             for (int i = 0; i < _currentMembers.Count; i++)
             {
