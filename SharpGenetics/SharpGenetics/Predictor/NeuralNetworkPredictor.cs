@@ -66,34 +66,20 @@ namespace SharpGenetics.Predictor
 
         [DataMember]
         public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
-        
-        List<double> NetworkSerializeValue;
+
+        byte[] NetworkSerializeValue;
 
         [DataMember]
-        public List<double> NetworkSerialize
+        public byte[] NetworkSerialize
         {
             get
             {
-                List<double> Res = new List<double>();
-                lock (NetworkLock)
-                {
-                    if (Network != null)
-                    {
-                        foreach (var layer in Network.Layers)
-                        {
-                            foreach (var neuron in layer.Neurons)
-                            {
-                                for (int i = 0; i < neuron.Weights.Length; i++)
-                                {
-                                    Res.Add(neuron.Weights[i]);
-                                }
-                            }
-                        }
-                    }
-                }
-                return Res;
+                return Accord.IO.Serializer.Save(Network);
             }
-            set { NetworkSerializeValue = value; }
+            set
+            {
+                NetworkSerializeValue = value;
+            }
         }
 
         [DataMember]
@@ -172,29 +158,14 @@ namespace SharpGenetics.Predictor
             {
                 if (Network == null)
                 {
-                    //Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
-                    Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
-                    if (NetworkSerializeValue != null && NetworkSerializeValue.Count > 0)
+                    if (NetworkSerializeValue != null)
                     {
-                        int Current = 0;
-                        foreach (var layer in Network.Layers)
-                        {
-                            foreach (var neuron in layer.Neurons)
-                            {
-                                for (int i = 0; i < neuron.Weights.Length; i++)
-                                {
-                                    neuron.Weights[i] = NetworkSerializeValue[Current];
-                                    Current++;
-                                }
-                            }
-                        }
-                    }
-                    else
+                        Network = Accord.IO.Serializer.Load<ActivationNetwork>(NetworkSerializeValue);
+                    } else
                     {
+                        Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
                         new GaussianWeights(Network).Randomize();
-                        //((DeepBeliefNetwork)Network).UpdateVisibleWeights();
                     }
-
                 }
             }
         }
@@ -389,7 +360,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public  void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
+        public void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
         {
             //Go through each individual
             //Set fitness if below threshold
