@@ -29,6 +29,8 @@ namespace SharpGenetics.BaseClasses
         public int GenerationsRun = -1;
         [DataMember]
         public bool UsePredictor = false;
+        [DataMember]
+        public bool RecalculateAfterAGeneration = false;
 
         [DataMember]
         private List<T> _currentMembers;
@@ -123,6 +125,7 @@ namespace SharpGenetics.BaseClasses
 
             //UsePredictor = (int)(double)Parent.Parameters.GetParameter("extra_use_predictor") == 1;
             UsePredictor = (bool)Parent.Parameters.GetParameter("extra_use_predictor");
+            RecalculateAfterAGeneration = Parent.Parameters.GetParameter<bool>("extra_recalculate_elite", false);
 
             string FC = (string)Parent.Parameters.GetParameter("string_FitnessComparer");
 
@@ -433,8 +436,11 @@ namespace SharpGenetics.BaseClasses
 
             SortAll();
 
-            int evaluations = _currentMembers.Count(p => !p.Predicted) - ElitismCount;
-
+            int evaluations = _currentMembers.Count(p => !p.Predicted); // - ElitismCount; //TODO remove ElitismCount if reevaluation is on | add RecalculateAfterAGeneration as parameter
+            if(!RecalculateAfterAGeneration)
+            {
+                evaluations -= ElitismCount;
+            }
 
             var fitnesses = _currentMembers.Select(x => x.GetFitness()).ToList();
             RunMetrics.AddGeneration(fitnesses, evaluations);

@@ -114,6 +114,9 @@ namespace SharpGenetics.BaseClasses
         public int UpdatedAtGeneration = 0;
 
         [DataMember]
+        public int Evaluations = 0;
+
+        [DataMember]
         public bool Predicted = false;
         
         public abstract PopulationManager<T, I, O> GetParentManager<T,I,O>() where T: PopulationMember;

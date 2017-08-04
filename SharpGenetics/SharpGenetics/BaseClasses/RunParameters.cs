@@ -56,6 +56,18 @@ namespace SharpGenetics.BaseClasses
             }
         }
 
+        public T GetParameter<T>(string key, T DefaultValue)
+        {
+            if (_parameters.ContainsKey(key))
+            {
+                return (T)_parameters[key];
+            }
+            else
+            {
+                return DefaultValue;
+            }
+        }
+
         public RunParameters Clone()
         {
             RunParameters clone = new RunParameters();
