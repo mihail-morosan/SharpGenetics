@@ -451,7 +451,7 @@ namespace SharpGenetics.BaseClasses
 
                 List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
 
-                Predictor.AfterGeneration(CMembers, GenerationsRun, RunMetrics.AverageFitnesses.FirstOrDefault().Value / 10, rand.Next());
+                Predictor.AfterGeneration(CMembers, GenerationsRun, RunMetrics.AverageFitnesses.FirstOrDefault().Value, rand.Next());
             }
         }
 

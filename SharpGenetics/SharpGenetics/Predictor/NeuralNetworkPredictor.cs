@@ -55,12 +55,15 @@ namespace SharpGenetics.Predictor
         public List<double> MinOutputVal = new List<double>();
 
         [DataMember]
+        public double DiffAverage = -1;
+
+        /*[DataMember]
         double DiffPerSample = -1;
         [DataMember]
         public double DiffPerSampleNotNormalised = -1;
 
         [DataMember]
-        public List<double> DiffPerSampleNotNormalisedHistory = new List<double>();
+        public List<double> DiffPerSampleNotNormalisedHistory = new List<double>(); */
 
         public ActivationNetwork Network = null;
 
@@ -328,8 +331,9 @@ namespace SharpGenetics.Predictor
             error /= TrainingSet.Count * 4 / 5;
             error /= TrainingEpochsPerGeneration;
 
+            List<double> Real = new List<double>(new double[OutputLayer]);
             List<double> Diff = new List<double>(new double[OutputLayer]);
-            List<double> DiffOnTraining = new List<double>(new double[OutputLayer]);
+            //List<double> DiffOnTraining = new List<double>(new double[OutputLayer]);
 
             foreach (var In in ValidationSet)
             {
@@ -338,33 +342,65 @@ namespace SharpGenetics.Predictor
                 for (int i = 0; i < In.Outputs.Count; i++)
                 {
                     Diff[i] += Math.Abs(origOutputVal[i] - outputVal[i]);
+                    Real[i] += origOutputVal[i];
                 }
             }
 
-            foreach(var In in NetworkTrainingData)
+            double SumAccuracyRatio = 0;
+
+            for (int i = 0; i < OutputLayer; i++)
+            {
+                Diff[i] /= ValidationSet.Count;
+                Real[i] /= ValidationSet.Count;
+
+                var ratio = Diff[i] / Real[i];
+                //SumAccuracyRatio += ratio;
+                SumAccuracyRatio += Diff[i];
+            }
+
+            SumAccuracyRatio /= OutputLayer;
+
+            DiffAverage = SumAccuracyRatio;
+
+            //NetworkAccuracy = 1 - SumAccuracyRatio;
+
+            /*foreach(var In in NetworkTrainingData)
             {
                 var outputVal = Network.Compute(In.Inputs.ToArray());
                 for (int i = 0; i < In.Outputs.Count; i++)
                 {
                     DiffOnTraining[i] += Math.Abs(In.Outputs[i] - outputVal[i]);
                 }
-            }
+            }*/
 
-            DiffPerSample = Math.Max(Diff.Sum() / (ValidationSet.Count * OutputLayer), DiffOnTraining.Sum() / (NetworkTrainingData.Count * OutputLayer));
+            /*DiffPerSample = Math.Max(Diff.Sum() / (ValidationSet.Count * OutputLayer), DiffOnTraining.Sum() / (NetworkTrainingData.Count * OutputLayer));
 
             DiffPerSampleNotNormalised = 0;
 
             for (int i = 0; i < OutputLayer; i++)
             {
                 DiffPerSampleNotNormalised += (Diff[i] / (ValidationSet.Count * OutputLayer)) * (MaxOutputVal[i] - MinOutputVal[i]) + MinOutputVal[i];
-            }
+            }*/
+
+            
+            /*if (DiffPerSampleNotNormalised >= 0)
+                DiffPerSampleNotNormalisedHistory.Add(DiffPerSampleNotNormalised);
+
+            if (BaseScoreError <= 0 || NetworkTrainingData.Count < MinTrainingData || DiffPerSampleNotNormalised < 0)
+                NetworkAccuracy = -1;
+            else
+                NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / BaseScoreError);*/
+
+            //var AggregateDiffPerSample = DiffPerSampleNotNormalisedHistory.Skip(Math.Max(DiffPerSampleNotNormalisedHistory.Count - 3, 0)).Average();
+
+            //NetworkAccuracy = 1.0d - (AggregateDiffPerSample / BaseScoreError);
         }
 
         public void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
         {
             //Go through each individual
             //Set fitness if below threshold
-            if (GetAccuracy() > 0)
+            if (GetAccuracy() > 0.75) //TODO change to parameter
             {
                 double LowerPredThreshold = 0;
                 double UpperPredThreshold = double.PositiveInfinity;
@@ -414,7 +450,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public  void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError, int RandomSeed)
+        public void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError, int RandomSeed)
         {
             lock (NetworkLock)
             {
@@ -430,18 +466,8 @@ namespace SharpGenetics.Predictor
 
                 TrainNetwork();
 
-                if (DiffPerSampleNotNormalised >= 0)
-                    DiffPerSampleNotNormalisedHistory.Add(DiffPerSampleNotNormalised);
-
-                if (BaseScoreError <= 0 || NetworkTrainingData.Count < MinTrainingData || DiffPerSampleNotNormalised < 0)
-                    NetworkAccuracy = -1;
-                else
-                    NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / BaseScoreError);
-
-                //var AggregateDiffPerSample = DiffPerSampleNotNormalisedHistory.Skip(Math.Max(DiffPerSampleNotNormalisedHistory.Count - 3, 0)).Average();
-
-                //NetworkAccuracy = 1.0d - (AggregateDiffPerSample / BaseScoreError);
-
+                //NetworkAccuracy = 1 - (DiffAverage * (MaxOutputVal.Sum() - MinOutputVal.Sum()) + MinOutputVal.Sum()) / BaseScoreError;
+                NetworkAccuracy = 1 - DiffAverage;
             }
         }
     }
