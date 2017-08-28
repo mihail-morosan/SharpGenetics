@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.BaseClasses
 {
-    [ImplementPropertyChanged]
+    [AddINotifyPropertyChangedInterface]
     [DataContractAttribute(IsReference = true)]
     [JsonObject(IsReference = true)]
     //[KnownType("GetKnownType")]

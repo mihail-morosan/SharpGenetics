@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.BaseClasses
 {
-    [ImplementPropertyChanged]
+    [AddINotifyPropertyChangedInterface]
     [DataContract]
     public class MetricPoint
     {
@@ -26,7 +26,7 @@ namespace SharpGenetics.BaseClasses
         }
     }
 
-    [ImplementPropertyChanged]
+    [AddINotifyPropertyChangedInterface]
     [DataContract]
     public class RunMetrics
     {

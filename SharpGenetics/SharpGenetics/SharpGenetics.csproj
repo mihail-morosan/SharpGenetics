@@ -61,8 +61,8 @@
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\..\..\BalanceSpecs\packages\Newtonsoft.Json.10.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="PropertyChanged, Version=1.52.1.0, Culture=neutral, PublicKeyToken=ee3ee20bcf148ddd, processorArchitecture=MSIL">
-      <HintPath>..\..\..\BalanceSpecs\packages\PropertyChanged.Fody.1.52.1\Lib\netstandard10\PropertyChanged.dll</HintPath>
+    <Reference Include="PropertyChanged, Version=2.1.4.0, Culture=neutral, PublicKeyToken=ee3ee20bcf148ddd, processorArchitecture=MSIL">
+      <HintPath>..\..\..\BalanceSpecs\packages\PropertyChanged.Fody.2.1.4\lib\netstandard1.0\PropertyChanged.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -109,7 +109,7 @@
     <Folder Include="Extensions\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="FodyWeavers.xml" />
+    <None Include="FodyWeavers.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Accord.3.3.0\build\Accord.targets" Condition="Exists('..\packages\Accord.3.3.0\build\Accord.targets')" />
@@ -118,11 +118,11 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Accord.3.3.0\build\Accord.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Accord.3.3.0\build\Accord.targets'))" />
-    <Error Condition="!Exists('..\..\..\BalanceSpecs\packages\Fody.1.29.2\build\dotnet\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\BalanceSpecs\packages\Fody.1.29.2\build\dotnet\Fody.targets'))" />
     <Error Condition="!Exists('..\..\..\BalanceSpecs\packages\Accord.3.4.0\build\Accord.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\BalanceSpecs\packages\Accord.3.4.0\build\Accord.targets'))" />
+    <Error Condition="!Exists('..\..\..\BalanceSpecs\packages\Fody.2.1.2\build\netstandard1.0\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\BalanceSpecs\packages\Fody.2.1.2\build\netstandard1.0\Fody.targets'))" />
   </Target>
-  <Import Project="..\..\..\BalanceSpecs\packages\Fody.1.29.2\build\dotnet\Fody.targets" Condition="Exists('..\..\..\BalanceSpecs\packages\Fody.1.29.2\build\dotnet\Fody.targets')" />
   <Import Project="..\..\..\BalanceSpecs\packages\Accord.3.4.0\build\Accord.targets" Condition="Exists('..\..\..\BalanceSpecs\packages\Accord.3.4.0\build\Accord.targets')" />
+  <Import Project="..\..\..\BalanceSpecs\packages\Fody.2.1.2\build\netstandard1.0\Fody.targets" Condition="Exists('..\..\..\BalanceSpecs\packages\Fody.2.1.2\build\netstandard1.0\Fody.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

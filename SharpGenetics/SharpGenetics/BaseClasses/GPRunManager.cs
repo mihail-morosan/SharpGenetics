@@ -23,7 +23,7 @@ namespace SharpGenetics.BaseClasses
     /// <typeparam name="InputT">Input type it requires in tests</typeparam>
     /// <typeparam name="OutputT">Output type it requires in tests</typeparam>
     /// 
-    [ImplementPropertyChanged]
+    [AddINotifyPropertyChangedInterface]
     [DataContractAttribute]
     [KnownType("GetKnownType")]
     public class GPRunManager<T, InputT, OutputT> where T : PopulationMember
