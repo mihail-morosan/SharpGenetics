@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace SharpGenetics.Predictor
 {
     [DataContractAttribute]
-    public class InputOutputPair
+    public class InputOutputPair : IComparable
     {
         public InputOutputPair()
         {
@@ -36,6 +36,13 @@ namespace SharpGenetics.Predictor
                 Ret[i] = Math.Min(1, (Ret[i] - Min[i]) / (Max[i] - Min[i]));
             }
             return Ret;
+        }
+
+        public int CompareTo(object obj)
+        {
+            var Other = obj as InputOutputPair;
+
+            return Outputs.Sum().CompareTo(Other.Outputs.Sum());
         }
     }
 

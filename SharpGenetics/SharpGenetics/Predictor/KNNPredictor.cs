@@ -8,6 +8,7 @@ using SharpGenetics.BaseClasses;
 using Accord.MachineLearning;
 using Accord.Statistics;
 using SharpGenetics.Helpers;
+using Accord.Math;
 
 namespace SharpGenetics.Predictor
 {
@@ -45,8 +46,28 @@ namespace SharpGenetics.Predictor
         [ImportantParameter("extra_Predictor_KNN_TrainingDataTotal", "Training Data Total Capacity", 0, 200, 100)]
         public int TrainingDataTotalCount { get; set; }
 
+        [DataMember]
+        public List<int> PredictionsByGeneration = new List<int>();
+
+        [DataMember]
+        public int AcceptedPredictions = 0;
+
+        [DataMember]
+        public List<int> AcceptedPredictionsByGeneration = new List<int>();
+
+        [DataMember]
+        public List<int> FalsePositivesByGeneration = new List<int>();
+
+        [DataMember]
+        public List<int> FalseNegativesByGeneration = new List<int>();
+
+        [DataMember]
+        public double NetworkAccuracy = -1;
+
         public KNNPredictor(RunParameters Parameters, int RandomSeed)
         {
+            Accord.Math.Random.Generator.Seed = RandomSeed;
+
             PredictorHelper.ApplyPropertiesToPredictor<KNNPredictor>(this, Parameters);
             //ThresholdClass = (int)(double)Parameters.GetParameter("extra_Predictor_KNN_ThresholdClass");
             NetworkTrainingData = new WeightedTrainingSet(TrainingDataHighCount, TrainingDataLowCount, TrainingDataTotalCount);
@@ -80,7 +101,7 @@ namespace SharpGenetics.Predictor
                 return 3;
         }
 
-        public void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError, int RandomSeed)
+        public void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
         {
             lock (NetworkLock)
             {
@@ -91,9 +112,7 @@ namespace SharpGenetics.Predictor
                         AddInputOutputToData(Indiv.Vector, Indiv.ObjectivesFitness);
                     }
                 }
-
-                Accord.Math.Random.Generator.Seed = RandomSeed;
-
+                
                 var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
 
                 FirstQuart = 0;
@@ -105,16 +124,42 @@ namespace SharpGenetics.Predictor
         public void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
         {
             var TrainingData = NetworkTrainingData.GetAllValues();
-            knn = new KNearestNeighbors(k: 5, classes: 4, inputs: TrainingData.Select(e => e.Inputs.ToArray()).ToArray(), outputs: TrainingData.Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart)).ToArray());
-            foreach (var Indiv in Population)
+
+            if(TrainingData.Count < TrainingDataTotalCount)
             {
-                var Result = Predict(Indiv.Vector);
-                if (PassesThresholdCheck(Result.Sum()) && Indiv.Fitness < 0) // 0 -> (0,FirstQuart); 1 -> (FirstQuart,Median); 2 -> (Median,ThirdQuart); 3 -> (ThirdQuart,Infinity)
+                return;
+            }
+
+            TrainingData.Shuffle();
+
+            knn = new KNearestNeighbors(k: 5, classes: 4, inputs: TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), outputs: TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart)).ToArray());
+
+            //Calculate Accuracy
+            double Accuracy = 0;
+            var ValidationSet = TrainingData.Skip((int)(TrainingData.Count * 0.8));
+
+            foreach (var In in ValidationSet)
+            {
+                int computedClass = knn.Compute(In.Inputs.ToArray());
+                int origClass = ClassifyOutputs(In.Outputs, FirstQuart, Median, ThirdQuart);
+
+                Accuracy += Math.Abs(computedClass - origClass) * 0.25;
+            }
+
+            NetworkAccuracy = 1 - (Accuracy / ValidationSet.Count());
+
+            if (NetworkAccuracy >= 0.75)
+            {
+                foreach (var Indiv in Population)
                 {
-                    Indiv.Fitness = Result.Sum();
-                    Indiv.ObjectivesFitness = new List<double>(Result);
-                    Indiv.Predicted = true;
-                    //IncrementPredictionCount(Generation, true);
+                    var Result = Predict(Indiv.Vector);
+                    if (PassesThresholdCheck(Result.Sum()) && Indiv.Fitness < 0) // 0 -> (0,FirstQuart); 1 -> (FirstQuart,Median); 2 -> (Median,ThirdQuart); 3 -> (ThirdQuart,Infinity)
+                    {
+                        Indiv.Fitness = Result.Sum();
+                        Indiv.ObjectivesFitness = new List<double>(Result);
+                        Indiv.Predicted = true;
+                        IncrementPredictionCount(Generation, true);
+                    }
                 }
             }
         }
@@ -153,6 +198,30 @@ namespace SharpGenetics.Predictor
                     return new List<double>() { ThirdQuart - 1 };
                 default:
                     return new List<double>() { ThirdQuart + 1 };
+            }
+        }
+
+        public void IncrementPredictionCount(int Generation, bool Accepted)
+        {
+            lock (NetworkLock)
+            {
+                while (Generation >= PredictionsByGeneration.Count)
+                {
+                    PredictionsByGeneration.Add(0);
+                }
+
+                PredictionsByGeneration[Generation]++;
+
+                if (Accepted)
+                {
+                    AcceptedPredictions++;
+
+                    while (Generation >= AcceptedPredictionsByGeneration.Count)
+                    {
+                        AcceptedPredictionsByGeneration.Add(0);
+                    }
+                    AcceptedPredictionsByGeneration[Generation]++;
+                }
             }
         }
     }

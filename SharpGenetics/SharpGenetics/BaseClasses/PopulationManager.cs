@@ -139,13 +139,15 @@ namespace SharpGenetics.BaseClasses
                 FitnessComparer = (FitnessComparer)Activator.CreateInstance(Type.GetType(FC), new object[] { });
             }
 
+            int PredictorRandSeed = rand.Next();
+
             //Reload predictor
             //TODO change
             if (UsePredictor && Predictor == null)
             {
                 string PredictorType = "SharpGenetics.Predictor." + (string)Parent.Parameters.GetParameter("string_PredictorType") + ",SharpGenetics";
 
-                var Pred = (ResultPredictor<InputT, OutputT>)Activator.CreateInstance(Type.GetType(PredictorType), new object[] { Parent.Parameters, rand.Next() });
+                var Pred = (ResultPredictor<InputT, OutputT>)Activator.CreateInstance(Type.GetType(PredictorType), new object[] { Parent.Parameters, PredictorRandSeed });
 
                 Predictor = Pred;
             }
@@ -451,7 +453,7 @@ namespace SharpGenetics.BaseClasses
 
                 List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
 
-                Predictor.AfterGeneration(CMembers, GenerationsRun, RunMetrics.AverageFitnesses.FirstOrDefault().Value, rand.Next());
+                Predictor.AfterGeneration(CMembers, GenerationsRun, RunMetrics.AverageFitnesses.FirstOrDefault().Value);
             }
         }
 

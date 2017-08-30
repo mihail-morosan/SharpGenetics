@@ -1,8 +1,10 @@
-﻿using Accord.Neuro;
+﻿using Accord.Math;
+using Accord.Neuro;
 using Accord.Neuro.Learning;
 using Accord.Neuro.Networks;
 using SharpGenetics.BaseClasses;
 using SharpGenetics.Helpers;
+using SharpGenetics.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,7 +70,8 @@ namespace SharpGenetics.Predictor
         public ActivationNetwork Network = null;
 
         [DataMember]
-        public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
+        //public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
+        public WeightedTrainingSet NetworkTrainingData;
 
         byte[] NetworkSerializeValue;
 
@@ -152,6 +155,8 @@ namespace SharpGenetics.Predictor
 
             Accord.Math.Random.Generator.Seed = RandomSeed;
 
+            NetworkTrainingData = new WeightedTrainingSet((int)(0.25 * MaxTrainingData), (int)(0.25 * MaxTrainingData), MaxTrainingData);
+
             SetupNN();
         }
 
@@ -166,7 +171,8 @@ namespace SharpGenetics.Predictor
                         Network = Accord.IO.Serializer.Load<ActivationNetwork>(NetworkSerializeValue);
                     } else
                     {
-                        Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
+                        Network = new ActivationNetwork(new SigmoidFunction(), InputLayer, HiddenLayer, OutputLayer);
+                        //Network = new ActivationNetwork(new LinearFunction(), InputLayer, HiddenLayer, OutputLayer);
                         new GaussianWeights(Network).Randomize();
                     }
                 }
@@ -184,12 +190,14 @@ namespace SharpGenetics.Predictor
                     MaxOutputVal[i] = Math.Max(MaxOutputVal[i], Outputs[i]);
                 }
 
-                NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs));
+                NetworkTrainingData.AddIndividualToTrainingSet(new InputOutputPair(ParamsToSend, Outputs));
+
+                /*NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs));
 
                 if (NetworkTrainingData.Count > MaxTrainingData)
                 {
                     NetworkTrainingData.RemoveAt(0);
-                }
+                }*/
             }
         }
 
@@ -199,10 +207,7 @@ namespace SharpGenetics.Predictor
             lock (NetworkLock)
             {
                 List<double> NewInput = InputOutputPair.Normalise(Input, MinVal, MaxVal);
-                /*for (int i = 0; i < NewInput.Count; i++)
-                {
-                    NewInput[i] = (NewInput[i] - MinVal[i]) / (MaxVal[i] - MinVal[i]);
-                }*/
+
                 Result = Network.Compute(NewInput.ToArray()).ToList();
             }
             for (int i = 0; i < Result.Count; i++)
@@ -274,9 +279,9 @@ namespace SharpGenetics.Predictor
             return Dist.Generate(Samples).ToList();
         }
 
-        public void TrainNetwork()
+        public void TrainNetwork(double BaseScoreError)
         {
-            if (NetworkTrainingData.Count < MinTrainingData)
+            if (NetworkTrainingData.Count() < MinTrainingData)
             {
                 NetworkAccuracy = -1;
                 return;
@@ -287,8 +292,8 @@ namespace SharpGenetics.Predictor
 
             var teacher = new BackPropagationLearning(Network)
             {
-                //LearningRate = LearningRate,
-                //Momentum = Momentum
+                LearningRate = LearningRate,
+                Momentum = Momentum
             };
             
             /*var teacher = new DeepNeuralNetworkLearning(Network as DeepBeliefNetwork)
@@ -304,15 +309,12 @@ namespace SharpGenetics.Predictor
 
             var TrainingSet = new List<InputOutputPair>();
             var ValidationSet = new List<InputOutputPair>();
-            /*for(int i=0;i<MaxTrainingData;i++)
-            {
-                if (i % 5 != 0)
-                    TrainingSet.Add(NetworkTrainingData[i]);
-                else
-                    ValidationSet.Add(NetworkTrainingData[i]);
-            }*/
-            TrainingSet.AddRange(NetworkTrainingData.Take(NetworkTrainingData.Count * 4 / 5));
-            ValidationSet.AddRange(NetworkTrainingData.Skip(NetworkTrainingData.Count * 4 / 5));
+
+            var TrainingData = NetworkTrainingData.GetAllValues();
+            TrainingData.Shuffle();
+
+            TrainingSet.AddRange(TrainingData.Take(NetworkTrainingData.Count() * 4 / 5));
+            ValidationSet.AddRange(TrainingData.Skip(NetworkTrainingData.Count() * 4 / 5));
 
             for (int i = 0; i < TrainingEpochsPerGeneration; i++)
             {
@@ -331,18 +333,18 @@ namespace SharpGenetics.Predictor
             error /= TrainingSet.Count * 4 / 5;
             error /= TrainingEpochsPerGeneration;
 
-            List<double> Real = new List<double>(new double[OutputLayer]);
+            //List<double> Real = new List<double>(new double[OutputLayer]);
             List<double> Diff = new List<double>(new double[OutputLayer]);
             //List<double> DiffOnTraining = new List<double>(new double[OutputLayer]);
 
             foreach (var In in ValidationSet)
             {
                 var origOutputVal = InputOutputPair.Normalise(In.Outputs, MinOutputVal, MaxOutputVal);
-                var outputVal = Network.Compute(In.Inputs.ToArray());
+                var outputVal = Network.Compute(InputOutputPair.Normalise(In.Inputs, MinVal, MaxVal).ToArray());
                 for (int i = 0; i < In.Outputs.Count; i++)
                 {
                     Diff[i] += Math.Abs(origOutputVal[i] - outputVal[i]);
-                    Real[i] += origOutputVal[i];
+                    //Real[i] += origOutputVal[i];
                 }
             }
 
@@ -351,9 +353,9 @@ namespace SharpGenetics.Predictor
             for (int i = 0; i < OutputLayer; i++)
             {
                 Diff[i] /= ValidationSet.Count;
-                Real[i] /= ValidationSet.Count;
+                //Real[i] /= ValidationSet.Count;
 
-                var ratio = Diff[i] / Real[i];
+                //var ratio = Diff[i] / Real[i];
                 //SumAccuracyRatio += ratio;
                 SumAccuracyRatio += Diff[i];
             }
@@ -361,6 +363,10 @@ namespace SharpGenetics.Predictor
             SumAccuracyRatio /= OutputLayer;
 
             DiffAverage = SumAccuracyRatio;
+
+            //NetworkAccuracy = 1 - DiffAverage;
+
+            NetworkAccuracy = 1 - (DiffAverage * (MaxOutputVal.Sum() - MinOutputVal.Sum()) + MinOutputVal.Sum()) / BaseScoreError;
 
             //NetworkAccuracy = 1 - SumAccuracyRatio;
 
@@ -382,7 +388,7 @@ namespace SharpGenetics.Predictor
                 DiffPerSampleNotNormalised += (Diff[i] / (ValidationSet.Count * OutputLayer)) * (MaxOutputVal[i] - MinOutputVal[i]) + MinOutputVal[i];
             }*/
 
-            
+
             /*if (DiffPerSampleNotNormalised >= 0)
                 DiffPerSampleNotNormalisedHistory.Add(DiffPerSampleNotNormalised);
 
@@ -450,7 +456,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError, int RandomSeed)
+        public void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
         {
             lock (NetworkLock)
             {
@@ -462,12 +468,7 @@ namespace SharpGenetics.Predictor
                     }
                 }
 
-                Accord.Math.Random.Generator.Seed = RandomSeed;
-
-                TrainNetwork();
-
-                //NetworkAccuracy = 1 - (DiffAverage * (MaxOutputVal.Sum() - MinOutputVal.Sum()) + MinOutputVal.Sum()) / BaseScoreError;
-                NetworkAccuracy = 1 - DiffAverage;
+                TrainNetwork(BaseScoreError);
             }
         }
     }
