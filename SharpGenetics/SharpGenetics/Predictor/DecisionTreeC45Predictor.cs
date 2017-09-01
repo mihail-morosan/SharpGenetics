@@ -104,27 +104,6 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        int ClassifyOutputs(List<double> Output, double FirstQuart, double Median, double ThirdQuart)
-        {
-            double Sum = Output.Sum();
-            if (Sum < FirstQuart)
-            {
-                return 0;
-            }
-            if (Sum < Median)
-            {
-                double ratio = 1 + (Sum - FirstQuart) * (int)(((TotalClasses - 1) / 2)) / (Median - FirstQuart);
-                return (int)ratio;
-            }
-            if (Sum < ThirdQuart)
-            {
-                double ratio = 1 + (int)((TotalClasses-1) / 2) + (Sum - Median) * (int)(((TotalClasses - 1) / 2)) / (ThirdQuart - Median);
-                return (int)ratio;
-            }
-            else
-                return TotalClasses - 1;
-        }
-
         public override void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
         {
             lock (NetworkLock)
@@ -171,7 +150,7 @@ namespace SharpGenetics.Predictor
             TrainingData.Shuffle();
 
             double[][] input = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray();
-            int[] output = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart)).ToArray();
+            int[] output = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).ToArray();
 
             Tree = GenerateBestTree(input, output);
 
@@ -179,15 +158,14 @@ namespace SharpGenetics.Predictor
             {
                 return;
             }
-
-            //Calculate Accuracy
+            
             double Accuracy = 0;
             var ValidationSet = TrainingData.Skip((int)(TrainingData.Count * 0.8));
 
             foreach (var In in ValidationSet)
             {
                 int computedClass = Tree.Decide(In.Inputs.ToArray());
-                int origClass = ClassifyOutputs(In.Outputs, FirstQuart, Median, ThirdQuart);
+                int origClass = ClassifyOutputs(In.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses);
 
                 Accuracy += Math.Abs(computedClass - origClass) * (1.0 / (TotalClasses - 1));
             }
@@ -198,7 +176,6 @@ namespace SharpGenetics.Predictor
             {
                 foreach (var Indiv in Population)
                 {
-                    //var Result = Predict(Indiv.Vector);
                     int PredictedClass = Tree.Decide(Indiv.Vector.ToArray());
                     if (PassesThresholdCheck(PredictedClass) && Indiv.Fitness < 0) // 0 -> (0,FirstQuart); 1 -> (FirstQuart,Median); 2 -> (Median,ThirdQuart); 3 -> (ThirdQuart,Infinity)
                     {
@@ -215,19 +192,6 @@ namespace SharpGenetics.Predictor
         public bool PassesThresholdCheck(int Class)
         {
             return (Class >= ThresholdClass);
-            /*switch (ThresholdClass)
-            {
-                case 0:
-                    return true;
-                case 1:
-                    return Fitness > FirstQuart;
-                case 2:
-                    return Fitness > Median;
-                case 3:
-                    return Fitness > ThirdQuart;
-                default:
-                    return false;
-            }*/
         }
 
         public override List<double> Predict(List<double> Input)
@@ -237,37 +201,8 @@ namespace SharpGenetics.Predictor
             {
                 Result = Tree.Decide(Input.ToArray());
             }
-            /*switch (Result)
-            {
-                case 0:
-                    return new List<double>() { FirstQuart - 1 };
-                case 1:
-                    return new List<double>() { Median - 1 };
-                case 2:
-                    return new List<double>() { ThirdQuart - 1 };
-                default:
-                    return new List<double>() { ThirdQuart + 1 };
-            }*/
 
-            if(Result == 0)
-                return new List<double>() { FirstQuart - 1 };
-                
-            if(Result < ((double)TotalClasses - 1) / 2)
-            {
-                double Dif = Median - FirstQuart;
-                return new List<double>() { FirstQuart + Dif * ((double)Result / (int)((TotalClasses - 1) / 2)) -1 };
-            }
-
-            if(Result < TotalClasses-1)
-            {
-                double Dif = ThirdQuart - Median;
-                return new List<double>() { Median + Dif * (((double)Result - ((int)((TotalClasses - 1) / 2))) / (int)((TotalClasses - 1) / 2)) - 1 };
-            }
-
-            return new List<double>() { ThirdQuart + 1 };
-            
+            return CreateOutputFromClass(Result, FirstQuart, Median, ThirdQuart, TotalClasses);
         }
-
-        
     }
 }

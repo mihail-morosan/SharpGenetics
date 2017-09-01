@@ -16,7 +16,6 @@ namespace SharpGenetics.Predictor
     public class KNNPredictor : ResultPredictor<List<double>, List<double>>
     {
         [DataMember]
-        //public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
         public WeightedTrainingSet NetworkTrainingData;
 
         KNearestNeighbors knn = null; 
@@ -28,7 +27,8 @@ namespace SharpGenetics.Predictor
         {
             get
             {
-                return Accord.IO.Serializer.Save(knn);
+                //return Accord.IO.Serializer.Save(knn);
+                return null;
             }
             set
             {
@@ -60,6 +60,10 @@ namespace SharpGenetics.Predictor
         public int TrainingDataTotalCount { get; set; }
 
         [DataMember]
+        [ImportantParameter("extra_Predictor_KNN_TotalClasses", "Number of Output Classes", 0, 20, 4)]
+        public int TotalClasses { get; set; }
+
+        [DataMember]
         public double NetworkAccuracy = -1;
 
         public KNNPredictor(RunParameters Parameters, int RandomSeed)
@@ -81,7 +85,7 @@ namespace SharpGenetics.Predictor
                 {
                     if (NetworkSerializeValue != null)
                     {
-                        knn = Accord.IO.Serializer.Load<KNearestNeighbors>(NetworkSerializeValue);
+                        //knn = Accord.IO.Serializer.Load<KNearestNeighbors>(NetworkSerializeValue);
                     } else
                     {
                         knn = new KNearestNeighbors();
@@ -92,24 +96,10 @@ namespace SharpGenetics.Predictor
 
         public void AddInputOutputToData(List<double> ParamsToSend, List<double> Outputs)
         {
-            //Maybe only add different inputs / outputs?
             lock (NetworkLock)
             {
                 NetworkTrainingData.AddIndividualToTrainingSet(new InputOutputPair(ParamsToSend, Outputs));
             }
-        }
-
-        int ClassifyOutputs(List<double> Output, double FirstQuart, double Median, double ThirdQuart)
-        {
-            double Sum = Output.Sum();
-            if (Sum < FirstQuart)
-                return 0;
-            if (Sum < Median)
-                return 1;
-            if (Sum < ThirdQuart)
-                return 2;
-            else
-                return 3;
         }
 
         public override void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
@@ -144,20 +134,23 @@ namespace SharpGenetics.Predictor
             TrainingData.Shuffle();
 
             knn = new KNearestNeighbors(5);
-            knn.Learn(TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart)).ToArray());
+            knn.Learn(TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).ToArray());
             
-            //knn = new KNearestNeighbors(k: 5, classes: 4, );
-
-            //Calculate Accuracy
             double Accuracy = 0;
             var ValidationSet = TrainingData.Skip((int)(TrainingData.Count * 0.8));
 
             foreach (var In in ValidationSet)
             {
-                int computedClass = knn.Decide(In.Inputs.ToArray());
-                int origClass = ClassifyOutputs(In.Outputs, FirstQuart, Median, ThirdQuart);
+                try
+                {
+                    int computedClass = knn.Decide(In.Inputs.ToArray());
+                    int origClass = ClassifyOutputs(In.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses);
 
-                Accuracy += Math.Abs(computedClass - origClass) * 0.25;
+                    Accuracy += Math.Abs(computedClass - origClass) * (1.0 / (TotalClasses - 1));
+                } catch
+                {
+                    Accuracy += (1.0 / (TotalClasses - 1));
+                }
             }
 
             NetworkAccuracy = 1 - (Accuracy / ValidationSet.Count());
@@ -166,33 +159,25 @@ namespace SharpGenetics.Predictor
             {
                 foreach (var Indiv in Population)
                 {
-                    var Result = Predict(Indiv.Vector);
-                    if (PassesThresholdCheck(Result.Sum()) && Indiv.Fitness < 0) // 0 -> (0,FirstQuart); 1 -> (FirstQuart,Median); 2 -> (Median,ThirdQuart); 3 -> (ThirdQuart,Infinity)
+                    try
                     {
-                        Indiv.Fitness = Result.Sum();
-                        Indiv.ObjectivesFitness = new List<double>(Result);
-                        Indiv.Predicted = true;
-                        IncrementPredictionCount(Generation, true);
-                    }
+                        int PredictedClass = knn.Decide(Indiv.Vector.ToArray());
+                        if (PassesThresholdCheck(PredictedClass) && Indiv.Fitness < 0) // 0 -> (0,FirstQuart); 1 -> (FirstQuart,Median); 2 -> (Median,ThirdQuart); 3 -> (ThirdQuart,Infinity)
+                        {
+                            var Result = Predict(Indiv.Vector);
+                            Indiv.Fitness = Result.Sum();
+                            Indiv.ObjectivesFitness = new List<double>(Result);
+                            Indiv.Predicted = true;
+                            IncrementPredictionCount(Generation, true);
+                        }
+                    } catch { }
                 }
             }
         }
 
-        public bool PassesThresholdCheck(double Fitness)
+        public bool PassesThresholdCheck(int Class)
         {
-            switch (ThresholdClass)
-            {
-                case 0:
-                    return true;
-                case 1:
-                    return Fitness > FirstQuart;
-                case 2:
-                    return Fitness > Median;
-                case 3:
-                    return Fitness > ThirdQuart;
-                default:
-                    return false;
-            }
+            return (Class >= ThresholdClass);
         }
 
         public override List<double> Predict(List<double> Input)
@@ -202,17 +187,8 @@ namespace SharpGenetics.Predictor
             {
                 Result = knn.Decide(Input.ToArray());
             }
-            switch (Result)
-            {
-                case 0:
-                    return new List<double>(){ FirstQuart - 1 };
-                case 1:
-                    return new List<double>() { Median - 1 };
-                case 2:
-                    return new List<double>() { ThirdQuart - 1 };
-                default:
-                    return new List<double>() { ThirdQuart + 1 };
-            }
+            
+            return CreateOutputFromClass(Result, FirstQuart, Median, ThirdQuart, TotalClasses);
         }
     }
 }

@@ -97,6 +97,47 @@ namespace SharpGenetics.Predictor
                 }
             }
         }
+        
+        public static int ClassifyOutputs(List<double> Output, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
+        {
+            double Sum = Output.Sum();
+            if (Sum < FirstQuart)
+            {
+                return 0;
+            }
+            if (Sum < Median)
+            {
+                double ratio = 1 + (Sum - FirstQuart) * (int)(((TotalClasses - 1) / 2)) / (Median - FirstQuart);
+                return (int)ratio;
+            }
+            if (Sum < ThirdQuart)
+            {
+                double ratio = 1 + (int)((TotalClasses - 1) / 2) + (Sum - Median) * (int)(((TotalClasses - 1) / 2)) / (ThirdQuart - Median);
+                return (int)ratio;
+            }
+            else
+                return TotalClasses - 1;
+        }
+
+        public static List<double> CreateOutputFromClass(int Result, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
+        {
+            if (Result == 0)
+                return new List<double>() { FirstQuart - 1 };
+
+            if (Result < ((double)TotalClasses - 1) / 2)
+            {
+                double Dif = Median - FirstQuart;
+                return new List<double>() { FirstQuart + Dif * ((double)Result / (int)((TotalClasses - 1) / 2)) - 1 };
+            }
+
+            if (Result < TotalClasses - 1)
+            {
+                double Dif = ThirdQuart - Median;
+                return new List<double>() { Median + Dif * (((double)Result - ((int)((TotalClasses - 1) / 2))) / (int)((TotalClasses - 1) / 2)) - 1 };
+            }
+
+            return new List<double>() { ThirdQuart + 1 };
+        }
     }
 
     public class NameValuePair

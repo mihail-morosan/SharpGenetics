@@ -29,8 +29,11 @@ namespace SharpGenetics.Predictor
         [ImportantParameter("extra_Predictor_MaxTrainingData", "Maximum Training Data Stored", 1, 1000, 100)]
         public int MaxTrainingData { get; set; }
         [DataMember]
-        [ImportantParameter("extra_Predictor_MinTrainingData", "Minimum Training Data Needed", 1, 1000, 100)]
-        public int MinTrainingData { get; set; }
+        [ImportantParameter("extra_Predictor_TrainingDataHigh", "Training Data High Values Capacity", 0, 1000, 25)]
+        public int TrainingDataHighCount { get; set; }
+        [DataMember]
+        [ImportantParameter("extra_Predictor_TrainingDataLow", "Training Data Low Values Capacity", 0, 1000, 25)]
+        public int TrainingDataLowCount { get; set; }
         [DataMember]
         [ImportantParameter("extra_Predictor_TrainingEpochs", "Training Epochs Per Generation", 1, 1000, 100)]
         public int TrainingEpochsPerGeneration { get; set; }
@@ -120,7 +123,7 @@ namespace SharpGenetics.Predictor
             this.RandomSeed = RandomSeed;
             Accord.Math.Random.Generator.Seed = RandomSeed;
 
-            NetworkTrainingData = new WeightedTrainingSet((int)(0.25 * MaxTrainingData), (int)(0.25 * MaxTrainingData), MaxTrainingData);
+            NetworkTrainingData = new WeightedTrainingSet(TrainingDataHighCount, TrainingDataLowCount, MaxTrainingData);
 
             Setup();
         }
@@ -188,7 +191,7 @@ namespace SharpGenetics.Predictor
 
         public void TrainNetwork(double BaseScoreError)
         {
-            if (NetworkTrainingData.Count() < MinTrainingData)
+            if (NetworkTrainingData.Count() < MaxTrainingData)
             {
                 NetworkAccuracy = -1;
                 return;

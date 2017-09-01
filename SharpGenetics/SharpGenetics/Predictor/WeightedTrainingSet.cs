@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace SharpGenetics.Predictor
 {
     [DataContract]
-    public class WeightedTrainingSet
+    public class WeightedTrainingSet : TrainingSet
     {
         [DataMember]
         List<InputOutputPair> HighValues = new List<InputOutputPair>();
@@ -35,19 +35,19 @@ namespace SharpGenetics.Predictor
             this.MaxCapacity = MaxCapacity;
         }
 
-        public int Count()
+        public override int Count()
         {
             return HighValues.Count + LowValues.Count + OtherValues.Count;
         }
 
-        public void AddIndividualToTrainingSet(InputOutputPair Individual)
+        public override void AddIndividualToTrainingSet(InputOutputPair Individual)
         {
-            if (HighValues.Count < HighValuesCapacity || HighValues.Min(i => i.Outputs.Sum()) < Individual.Outputs.Sum())
+            if (HighValues.Count < HighValuesCapacity || (HighValues.Count > 0 && HighValues.Min(i => i.Outputs.Sum()) < Individual.Outputs.Sum()))
             {
                 HighValues.Add(Individual);
             }
 
-            if(LowValues.Count < LowValuesCapacity || LowValues.Max(i=>i.Outputs.Sum()) > Individual.Outputs.Sum())
+            if(LowValues.Count < LowValuesCapacity || (LowValues.Count > 0 && LowValues.Max(i=>i.Outputs.Sum()) > Individual.Outputs.Sum()))
             {
                 LowValues.Add(Individual);
             }
@@ -74,7 +74,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public List<InputOutputPair> GetAllValues()
+        public override List<InputOutputPair> GetAllValues()
         {
             var All = new List<InputOutputPair>(OtherValues);
             All.AddRange(HighValues);
