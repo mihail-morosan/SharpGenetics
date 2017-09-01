@@ -17,9 +17,6 @@ namespace SharpGenetics.Predictor
     [DataContract]
     public class NeuralNetworkPredictor: ResultPredictor<List<double>, List<double>> 
     {
-        public static readonly object NetworkLock = new object();
-
-        // Neural network stuff
         [DataMember]
         public int InputLayer = 1;
         [DataMember]
@@ -56,24 +53,9 @@ namespace SharpGenetics.Predictor
         [DataMember]
         public List<double> MinOutputVal = new List<double>();
 
-        [DataMember]
-        public int RandomSeed = 0;
-
-        [DataMember]
-        public double DiffAverage = -1;
-
-        /*[DataMember]
-        double DiffPerSample = -1;
-        [DataMember]
-        public double DiffPerSampleNotNormalised = -1;
-
-        [DataMember]
-        public List<double> DiffPerSampleNotNormalisedHistory = new List<double>(); */
-
         public ActivationNetwork Network = null;
 
         [DataMember]
-        //public List<InputOutputPair> NetworkTrainingData = new List<InputOutputPair>();
         public WeightedTrainingSet NetworkTrainingData;
 
         byte[] NetworkSerializeValue;
@@ -92,28 +74,7 @@ namespace SharpGenetics.Predictor
         }
 
         [DataMember]
-        public List<int> PredictionsByGeneration = new List<int>();
-
-        [DataMember]
-        public int AcceptedPredictions = 0;
-
-        [DataMember]
-        public List<int> AcceptedPredictionsByGeneration = new List<int>();
-
-        [DataMember]
-        public List<int> FalsePositivesByGeneration = new List<int>();
-
-        [DataMember]
-        public List<int> FalseNegativesByGeneration = new List<int>();
-
-        [DataMember]
         public double NetworkAccuracy = -1;
-        
-        [OnDeserialized]
-        private void OnDeserialized(StreamingContext context)
-        {
-            SetupNN();
-        }
 
         public NeuralNetworkPredictor(RunParameters Parameters, int RandomSeed)
         {
@@ -161,10 +122,10 @@ namespace SharpGenetics.Predictor
 
             NetworkTrainingData = new WeightedTrainingSet((int)(0.25 * MaxTrainingData), (int)(0.25 * MaxTrainingData), MaxTrainingData);
 
-            SetupNN();
+            Setup();
         }
 
-        private void SetupNN()
+        public override void Setup()
         {
             lock (NetworkLock)
             {
@@ -176,8 +137,6 @@ namespace SharpGenetics.Predictor
                     } else
                     {
                         Network = new ActivationNetwork(new BipolarSigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
-                        //Network = new ActivationNetwork(new LinearFunction(), InputLayer, HiddenLayer, OutputLayer);
-                        //new GaussianWeights(Network).Randomize();
                         NguyenWidrow initializer = new NguyenWidrow(Network);
                         initializer.Randomize();
                     }
@@ -190,24 +149,16 @@ namespace SharpGenetics.Predictor
             //Maybe only add different inputs / outputs?
             lock (NetworkLock)
             {
-                //Add max outputs to MaxOutputVal
                 for(int i=0;i<Outputs.Count;i++)
                 {
                     MaxOutputVal[i] = Math.Max(MaxOutputVal[i], Outputs[i]);
                 }
 
                 NetworkTrainingData.AddIndividualToTrainingSet(new InputOutputPair(ParamsToSend, Outputs));
-
-                /*NetworkTrainingData.Add(new InputOutputPair(ParamsToSend, Outputs));
-
-                if (NetworkTrainingData.Count > MaxTrainingData)
-                {
-                    NetworkTrainingData.RemoveAt(0);
-                }*/
             }
         }
 
-        public List<double> Predict(List<double> Input)
+        public override List<double> Predict(List<double> Input)
         {
             List<double> Result = new List<double>();
             lock (NetworkLock)
@@ -221,56 +172,6 @@ namespace SharpGenetics.Predictor
                 Result[i] = Result[i] * (MaxOutputVal[i] - MinOutputVal[i]) + MinOutputVal[i];
             }
             return Result;
-        }
-
-        public void IncrementPredictionCount(int Generation, bool Accepted)
-        {
-            lock (NetworkLock)
-            {
-                while(Generation >= PredictionsByGeneration.Count)
-                {
-                    PredictionsByGeneration.Add(0);
-                }
-
-                PredictionsByGeneration[Generation]++;
-
-                if (Accepted)
-                {
-                    AcceptedPredictions++;
-
-                    while (Generation >= AcceptedPredictionsByGeneration.Count)
-                    {
-                        AcceptedPredictionsByGeneration.Add(0);
-                    }
-                    AcceptedPredictionsByGeneration[Generation]++;
-                }
-            }
-        }
-
-        public void ConfirmResult(int Generation, double NNresult, double ActualResult, double ValueThreshold, double ValueThresholdMax)
-        {
-            lock (NetworkLock)
-            {
-                while(Generation >= FalseNegativesByGeneration.Count)
-                {
-                    FalseNegativesByGeneration.Add(0);
-                }
-
-                while(Generation >= FalsePositivesByGeneration.Count)
-                {
-                    FalsePositivesByGeneration.Add(0);
-                }
-
-                if(NNresult < ValueThreshold && ActualResult > ValueThreshold)
-                {
-                    FalsePositivesByGeneration[Generation]++;
-                }
-
-                if(NNresult > ValueThreshold && ActualResult < ValueThreshold && NNresult < ValueThresholdMax)
-                {
-                    FalseNegativesByGeneration[Generation]++;
-                }
-            }
         }
 
         public  double GetAccuracy()
@@ -340,10 +241,8 @@ namespace SharpGenetics.Predictor
 
             error /= TrainingSet.Count * 4 / 5;
             error /= TrainingEpochsPerGeneration;
-
-            //List<double> Real = new List<double>(new double[OutputLayer]);
+            
             List<double> Diff = new List<double>(new double[OutputLayer]);
-            //List<double> DiffOnTraining = new List<double>(new double[OutputLayer]);
 
             foreach (var In in ValidationSet)
             {
@@ -352,7 +251,6 @@ namespace SharpGenetics.Predictor
                 for (int i = 0; i < In.Outputs.Count; i++)
                 {
                     Diff[i] += Math.Abs(origOutputVal[i] - outputVal[i]);
-                    //Real[i] += origOutputVal[i];
                 }
             }
 
@@ -361,20 +259,14 @@ namespace SharpGenetics.Predictor
             for (int i = 0; i < OutputLayer; i++)
             {
                 Diff[i] /= ValidationSet.Count;
-                //Real[i] /= ValidationSet.Count;
-
-                //var ratio = Diff[i] / Real[i];
-                //SumAccuracyRatio += ratio;
                 SumAccuracyRatio += Diff[i];
             }
 
             SumAccuracyRatio /= OutputLayer;
 
-            DiffAverage = SumAccuracyRatio;
-
             //NetworkAccuracy = 1 - DiffAverage;
 
-            NetworkAccuracy = 1 - (DiffAverage * (MaxOutputVal.Sum() - MinOutputVal.Sum()) + MinOutputVal.Sum()) / BaseScoreError;
+            NetworkAccuracy = 1 - (SumAccuracyRatio * (MaxOutputVal.Sum() - MinOutputVal.Sum()) + MinOutputVal.Sum()) / BaseScoreError;
 
             //NetworkAccuracy = 1 - SumAccuracyRatio;
 
@@ -410,7 +302,7 @@ namespace SharpGenetics.Predictor
             //NetworkAccuracy = 1.0d - (AggregateDiffPerSample / BaseScoreError);
         }
 
-        public void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
+        public override void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
         {
             //Go through each individual
             //Set fitness if below threshold
@@ -471,7 +363,7 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
+        public override void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
         {
             lock (NetworkLock)
             {

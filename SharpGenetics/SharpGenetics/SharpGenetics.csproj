@@ -40,23 +40,23 @@
     </StartupObject>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Accord, Version=3.4.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
-      <HintPath>..\..\..\BalanceSpecs\packages\Accord.3.4.0\lib\net45\Accord.dll</HintPath>
+    <Reference Include="Accord, Version=3.7.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
+      <HintPath>..\..\..\BalanceSpecs\packages\Accord.3.7.0\lib\net45\Accord.dll</HintPath>
     </Reference>
-    <Reference Include="Accord.MachineLearning, Version=3.4.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
-      <HintPath>..\..\..\BalanceSpecs\packages\Accord.MachineLearning.3.4.0\lib\net45\Accord.MachineLearning.dll</HintPath>
+    <Reference Include="Accord.MachineLearning, Version=3.7.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
+      <HintPath>..\..\..\BalanceSpecs\packages\Accord.MachineLearning.3.7.0\lib\net45\Accord.MachineLearning.dll</HintPath>
     </Reference>
-    <Reference Include="Accord.Math, Version=3.4.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
-      <HintPath>..\..\..\BalanceSpecs\packages\Accord.Math.3.4.0\lib\net45\Accord.Math.dll</HintPath>
+    <Reference Include="Accord.Math, Version=3.7.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
+      <HintPath>..\..\..\BalanceSpecs\packages\Accord.Math.3.7.0\lib\net45\Accord.Math.dll</HintPath>
     </Reference>
-    <Reference Include="Accord.Math.Core, Version=3.4.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
-      <HintPath>..\..\..\BalanceSpecs\packages\Accord.Math.3.4.0\lib\net45\Accord.Math.Core.dll</HintPath>
+    <Reference Include="Accord.Math.Core, Version=3.7.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
+      <HintPath>..\..\..\BalanceSpecs\packages\Accord.Math.3.7.0\lib\net45\Accord.Math.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Accord.Neuro, Version=3.4.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
-      <HintPath>..\..\..\BalanceSpecs\packages\Accord.Neuro.3.4.0\lib\net45\Accord.Neuro.dll</HintPath>
+    <Reference Include="Accord.Neuro, Version=3.7.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
+      <HintPath>..\..\..\BalanceSpecs\packages\Accord.Neuro.3.7.0\lib\net45\Accord.Neuro.dll</HintPath>
     </Reference>
-    <Reference Include="Accord.Statistics, Version=3.4.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
-      <HintPath>..\..\..\BalanceSpecs\packages\Accord.Statistics.3.4.0\lib\net45\Accord.Statistics.dll</HintPath>
+    <Reference Include="Accord.Statistics, Version=3.7.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
+      <HintPath>..\..\..\BalanceSpecs\packages\Accord.Statistics.3.7.0\lib\net45\Accord.Statistics.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\..\..\BalanceSpecs\packages\Newtonsoft.Json.10.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -87,6 +87,7 @@
     <Compile Include="BaseClasses\RunParameters.cs" />
     <Compile Include="Helpers\AsyncObservableCollection.cs" />
     <Compile Include="Helpers\ImportantParameterAttribute.cs" />
+    <Compile Include="Predictor\DecisionTreeC45Predictor.cs" />
     <Compile Include="Predictor\InputOutputPair.cs" />
     <Compile Include="Predictor\KNNPredictor.cs" />
     <Compile Include="Predictor\NeuralNetworkPredictor.cs" />
@@ -119,11 +120,11 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Accord.3.3.0\build\Accord.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Accord.3.3.0\build\Accord.targets'))" />
-    <Error Condition="!Exists('..\..\..\BalanceSpecs\packages\Accord.3.4.0\build\Accord.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\BalanceSpecs\packages\Accord.3.4.0\build\Accord.targets'))" />
     <Error Condition="!Exists('..\..\..\BalanceSpecs\packages\Fody.2.1.2\build\netstandard1.0\Fody.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\BalanceSpecs\packages\Fody.2.1.2\build\netstandard1.0\Fody.targets'))" />
+    <Error Condition="!Exists('..\..\..\BalanceSpecs\packages\Accord.3.7.0\build\Accord.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\BalanceSpecs\packages\Accord.3.7.0\build\Accord.targets'))" />
   </Target>
-  <Import Project="..\..\..\BalanceSpecs\packages\Accord.3.4.0\build\Accord.targets" Condition="Exists('..\..\..\BalanceSpecs\packages\Accord.3.4.0\build\Accord.targets')" />
   <Import Project="..\..\..\BalanceSpecs\packages\Fody.2.1.2\build\netstandard1.0\Fody.targets" Condition="Exists('..\..\..\BalanceSpecs\packages\Fody.2.1.2\build\netstandard1.0\Fody.targets')" />
+  <Import Project="..\..\..\BalanceSpecs\packages\Accord.3.7.0\build\Accord.targets" Condition="Exists('..\..\..\BalanceSpecs\packages\Accord.3.7.0\build\Accord.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

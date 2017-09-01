@@ -10,15 +10,93 @@ using System.Threading.Tasks;
 
 namespace SharpGenetics.Predictor
 {
-    //[DataContract]
+    [DataContract]
     //public abstract class ResultPredictor<Input, Output, Indiv>
-    public interface ResultPredictor<Input, Output>
+    public abstract class ResultPredictor<Input, Output>
     {
-        Output Predict(Input Input);
+        public abstract Output Predict(Input Input);
 
-        void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError);
+        public abstract void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError);
 
-        void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation);
+        public abstract void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation);
+
+        public abstract void Setup();
+        
+        [OnDeserialized]
+        private void OnDeserialized(StreamingContext context)
+        {
+            Setup();
+        }
+
+        [DataMember]
+        public int RandomSeed = 0;
+
+        [DataMember]
+        public List<int> PredictionsByGeneration = new List<int>();
+
+        [DataMember]
+        public int AcceptedPredictions = 0;
+
+        [DataMember]
+        public List<int> AcceptedPredictionsByGeneration = new List<int>();
+
+        [DataMember]
+        public List<int> FalsePositivesByGeneration = new List<int>();
+
+        [DataMember]
+        public List<int> FalseNegativesByGeneration = new List<int>();
+
+        public static readonly object NetworkLock = new object();
+
+        public void IncrementPredictionCount(int Generation, bool Accepted)
+        {
+            lock (NetworkLock)
+            {
+                while (Generation >= PredictionsByGeneration.Count)
+                {
+                    PredictionsByGeneration.Add(0);
+                }
+
+                PredictionsByGeneration[Generation]++;
+
+                if (Accepted)
+                {
+                    AcceptedPredictions++;
+
+                    while (Generation >= AcceptedPredictionsByGeneration.Count)
+                    {
+                        AcceptedPredictionsByGeneration.Add(0);
+                    }
+                    AcceptedPredictionsByGeneration[Generation]++;
+                }
+            }
+        }
+
+        public void ConfirmResult(int Generation, double PredictedResult, double ActualResult, double ValueThreshold, double ValueThresholdMax)
+        {
+            lock (NetworkLock)
+            {
+                while (Generation >= FalseNegativesByGeneration.Count)
+                {
+                    FalseNegativesByGeneration.Add(0);
+                }
+
+                while (Generation >= FalsePositivesByGeneration.Count)
+                {
+                    FalsePositivesByGeneration.Add(0);
+                }
+
+                if (PredictedResult < ValueThreshold && ActualResult > ValueThreshold)
+                {
+                    FalsePositivesByGeneration[Generation]++;
+                }
+
+                if (PredictedResult > ValueThreshold && ActualResult < ValueThreshold && PredictedResult < ValueThresholdMax)
+                {
+                    FalseNegativesByGeneration[Generation]++;
+                }
+            }
+        }
     }
 
     public class NameValuePair
