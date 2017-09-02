@@ -18,7 +18,7 @@ namespace SharpGenetics.SelectionAlgorithms
 
         public TournamentSelection(RunParameters Parameters, int RandomSeed = -1)
         {
-            this.TournamentSize = (int)(double)Parameters.GetParameter("Par_TournamentSize");
+            this.TournamentSize = Parameters.GetParameter("Par_TournamentSize", 6);
         }
 
         public override T Select<T, InputT, OutputT>(PopulationManager<T, InputT, OutputT> Manager, List<T> Population)

@@ -39,7 +39,6 @@ namespace SharpGenetics.BaseClasses
         private List<T> _nextGeneration;
 
         [DataMember]
-        //public List<double> AverageFitnessByGeneration;
         public RunMetrics RunMetrics { get; set; }
 
         [DataMember]
@@ -59,23 +58,13 @@ namespace SharpGenetics.BaseClasses
         private FitnessComparer FitnessComparer = null;
 
         /// <summary>
-        /// Adds a key/value pair of parameters to the parameter dictionary.
-        /// </summary>
-        /// <param name="key">Name of the parameter</param>
-        /// <param name="value">Value of the parameter</param>
-        public void AddToParameters(string key, object value)
-        {
-            Parent.Parameters.AddToParameters(key, value);
-        }
-
-        /// <summary>
         /// Retrieves the parameter with the given key name.
         /// </summary>
         /// <param name="key">Parameter name</param>
         /// <returns>The value of the parameter requested</returns>
         public double GetParameter(string key)
         {
-            return (double)Parent.Parameters.GetParameter(key);
+            return Parent.Parameters.GetParameter(key, 0.0);
         }
 
         public RunParameters GetParameters()
@@ -112,22 +101,11 @@ namespace SharpGenetics.BaseClasses
         public void ReloadParameters(GPRunManager<T, InputT, OutputT> Parent)
         {
             this.Parent = Parent;
+            
+            UsePredictor = Parent.Parameters.GetParameter("extra_use_predictor", false);
+            RecalculateAfterAGeneration = Parent.Parameters.GetParameter("extra_recalculate_elite", false);
 
-            if (Parent.Parameters._parameters.Count == 0)
-            {
-                AddToParameters("Par_KeepEliteRatio", 0.05);
-                AddToParameters("Par_KeepRandRatio", 0.05);
-                AddToParameters("Par_MutateRatio", 0.1);
-                AddToParameters("Par_CrossoverRatio", 0.4);
-                AddToParameters("Par_MaxPopMembers", 1000);
-                AddToParameters("Par_TournamentSize", 20);
-            }
-
-            //UsePredictor = (int)(double)Parent.Parameters.GetParameter("extra_use_predictor") == 1;
-            UsePredictor = (bool)Parent.Parameters.GetParameter("extra_use_predictor");
-            RecalculateAfterAGeneration = Parent.Parameters.GetParameter<bool>("extra_recalculate_elite", false);
-
-            string FC = (string)Parent.Parameters.GetParameter("string_FitnessComparer");
+            string FC = Parent.Parameters.GetParameter("string_FitnessComparer", "SharpGenetics.BaseClasses.DefaultDoubleFitnessComparer,SharpGenetics");
 
             if (FC == "")
             {
@@ -140,12 +118,10 @@ namespace SharpGenetics.BaseClasses
             }
 
             int PredictorRandSeed = rand.Next();
-
-            //Reload predictor
-            //TODO change
+            
             if (UsePredictor && Predictor == null)
             {
-                string PredictorType = "SharpGenetics.Predictor." + (string)Parent.Parameters.GetParameter("string_PredictorType") + ",SharpGenetics";
+                string PredictorType = "SharpGenetics.Predictor." + Parent.Parameters.GetParameter("string_PredictorType", "") + ",SharpGenetics";
 
                 var Pred = (ResultPredictor<InputT, OutputT>)Activator.CreateInstance(Type.GetType(PredictorType), new object[] { Parent.Parameters, PredictorRandSeed });
 
@@ -177,19 +153,6 @@ namespace SharpGenetics.BaseClasses
             _tests = newList;
 
             int i = 0;
-
-            if(_tests.Count > 0)
-            {
-                
-                foreach(string Input in _tests[0].Inputs.Keys)
-                {
-                    AddToParameters("Input" + i, Input);
-                    i++;
-                }
-
-            }
-
-            AddToParameters("InputCount", i);
         }
 
         /// <summary>
@@ -254,12 +217,6 @@ namespace SharpGenetics.BaseClasses
         /// <returns></returns>
         public List<T> GetTopXMembers(int x, bool OnlyIndividualsWithEvaluations = false)
         {
-            //List<T> test = new List<T>();
-
-            //test = _currentMembers.ToList();
-
-            //test.Sort((m1, m2) => m1.CalculateFitness(_tests.ToArray()).CompareTo(m2.CalculateFitness(_tests.ToArray())));
-
             if (!OnlyIndividualsWithEvaluations)
             {
                 SortAll();
@@ -419,12 +376,12 @@ namespace SharpGenetics.BaseClasses
         /// <param name="UseTournamentSelection">Whether to use tournament selection or not during member selection</param>
         public void RegenerateMembers(bool UseTournamentSelection = false)
         {
-            int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
+            int ElitismCount = (int)(_currentMembers.Count * GetParameter("Par_KeepEliteRatio"));
             //int TSize = UseTournamentSelection ? (int)GetParameter("Par_TournamentSize") : 0;
 
-            GenerateMembersThroughCrossover((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_CrossoverRatio")));
+            GenerateMembersThroughCrossover((int)((int)GetParameter("Par_MaxPopMembers") * GetParameter("Par_CrossoverRatio")));
 
-            GenerateMembersThroughMutation((int)((int)GetParameter("Par_MaxPopMembers") * (double)GetParameter("Par_MutateRatio")));
+            GenerateMembersThroughMutation((int)((int)GetParameter("Par_MaxPopMembers") * GetParameter("Par_MutateRatio")));
 
             GenerateRandomMembers();
 
@@ -449,8 +406,6 @@ namespace SharpGenetics.BaseClasses
 
             if (UsePredictor)
             {
-                //int ElitismCount = (int)(_currentMembers.Count * (double)GetParameter("Par_KeepEliteRatio"));
-
                 List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
 
                 Predictor.AfterGeneration(CMembers, GenerationsRun, RunMetrics.AverageFitnesses.FirstOrDefault().Value);

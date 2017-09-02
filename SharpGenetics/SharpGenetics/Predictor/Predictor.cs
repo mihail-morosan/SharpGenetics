@@ -29,6 +29,10 @@ namespace SharpGenetics.Predictor
         }
 
         [DataMember]
+        [ImportantParameter("extra_Predictor_MinimumAccuracy", "Minimum Accuracy Required", 1, 100, 75)]
+        public int MinimumAccuracy { get; set; }
+
+        [DataMember]
         public int RandomSeed = 0;
 
         [DataMember]
@@ -179,7 +183,7 @@ namespace SharpGenetics.Predictor
             foreach(var Attribute in Attributes)
             {
                 PropertyInfo propInfo = PredictorType.GetProperty(Attribute.PropertyName);
-                double Value = (double)Parameters.GetParameter(Attribute.ParameterName);
+                double Value = Parameters.GetParameter(Attribute.ParameterName, Attribute.Default);
                 propInfo.SetValue(Predictor, Convert.ChangeType(Value, propInfo.PropertyType));
             }
         }

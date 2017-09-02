@@ -106,9 +106,6 @@ namespace SharpGenetics.BaseClasses
         /// <param name="Tests">Tests to be used for calculating fitness of population members</param>
         public GPRunManager(string Filename, List<GenericTest<InputT, OutputT>> Tests, int RandomSeed = -1) : this(LoadParamsFromFile(Filename), Tests, RandomSeed)
         {
-            //Parameters = LoadParamsFromFile(Filename);
-            //mainRandom = new CRandom((int)(double)Parameters.GetParameter("Par_Seed"));
-            //SetTests(Tests);
         }
 
         [JsonConstructor]
@@ -118,14 +115,14 @@ namespace SharpGenetics.BaseClasses
             this.Populations = new ObservableCollection<PopulationManager<T, InputT, OutputT>>();
             this.Parameters = Parameters;
             this.RandomSeed = RandomSeed;
-            mainRandom = new CRandom(RandomSeed != -1 ? RandomSeed : (int)(double)Parameters.GetParameter("Par_Seed"));
+            mainRandom = new CRandom(RandomSeed != -1 ? RandomSeed : Parameters.GetParameter<int>("Par_Seed", 1));
             SetTests(Tests);
 
-            var SelAlg = (string)Parameters.GetParameter("string_SelectionAlgorithm");
-            if(SelAlg.Length < 1)
+            var SelAlg = Parameters.GetParameter<string>("string_SelectionAlgorithm", "SharpGenetics.SelectionAlgorithms.TournamentSelection,SharpGenetics");
+            /*if(SelAlg.Length < 1)
             {
                 SelAlg = "SharpGenetics.SelectionAlgorithms.TournamentSelection,SharpGenetics";
-            }
+            }*/
             
             SelectionAlgorithm = (SelectionAlgorithm)Activator.CreateInstance(Type.GetType(SelAlg), new object[] { this.Parameters, mainRandom.Next() });
         }
@@ -146,7 +143,7 @@ namespace SharpGenetics.BaseClasses
         {
             Timer = Stopwatch.StartNew();
 
-            for (int i = 0; i < (int)(double)Parameters.GetParameter("Par_IslandClusters"); i++)
+            for (int i = 0; i < Parameters.GetParameter<int>("Par_IslandClusters", 1); i++)
             {
                 //RunParameters InstanceParams = Parameters.Clone();
                 //InstanceParams.AddToParameters("Instance", i + 1);
@@ -199,19 +196,20 @@ namespace SharpGenetics.BaseClasses
             int GenerationsThisSubRun = 0;
 
             bool Completed = false;
+            int MaxTGenerations = Parameters.GetParameter<int>("Par_MaxGenerations", 100);
 
             if (GenerationsBeforePause <= 0)
             {
-                GenerationsBeforePause = (int)(double)Parameters.GetParameter("Par_MaxGenerations");
+                GenerationsBeforePause = MaxTGenerations;
             }
 
-            int RefreshGenCount = (int)(double)Parameters.GetParameter("Par_GenCountBeforeRefresh");
+            int RefreshGenCount = Parameters.GetParameter<int>("Par_GenCountBeforeRefresh", 0);
 
-            ManualResetEvent[] doneEvents = new ManualResetEvent[(int)(double)Parameters.GetParameter("Par_IslandClusters")];
+            ManualResetEvent[] doneEvents = new ManualResetEvent[Parameters.GetParameter<int>("Par_IslandClusters", 1)];
 
             int MaxGenerations = GenerationsBeforePause;
             
-            while (CurrentGen < (int)(double)Parameters.GetParameter("Par_MaxGenerations") && !Completed && (GenerationsThisSubRun < GenerationsBeforePause))
+            while (CurrentGen < MaxTGenerations && !Completed && (GenerationsThisSubRun < GenerationsBeforePause))
             {
                 int NumberOfRuns = 0;
 
@@ -299,7 +297,7 @@ namespace SharpGenetics.BaseClasses
 
                         Console.WriteLine(" REFRESH: Population elite calculation");
 
-                        int EliteMembers = (int)((double)Parameters.GetParameter("Par_KeepEliteRatio") * (double)Parameters.GetParameter("Par_MaxPopMembers"));
+                        int EliteMembers = (int)(Parameters.GetParameter<double>("Par_KeepEliteRatio", 0.1) * Parameters.GetParameter<double>("Par_MaxPopMembers", 100));
                         NewPop.AddMembers(pop.GetTopXMembers(EliteMembers));
 
                         /*double tempFit = pop.GetAverageFitness();*/
@@ -339,7 +337,7 @@ namespace SharpGenetics.BaseClasses
 
             Timer.Stop();
 
-            if (Completed || CurrentGen >= (int)(double)Parameters.GetParameter("Par_MaxGenerations"))
+            if (Completed || CurrentGen >= Parameters.GetParameter<int>("Par_MaxGenerations", 100))
                 return 1;
             return 0;
         }
@@ -370,62 +368,13 @@ namespace SharpGenetics.BaseClasses
         public static RunParameters LoadParamsFromFile(string filename)
         {
             RunParameters rp = new RunParameters();
-            if (filename.Contains(".xml"))
-            {
-                XmlReader xmlReader = XmlReader.Create(filename);
-                while (xmlReader.Read())
-                {
-                    if ((xmlReader.Name.Substring(0, Math.Min(4, xmlReader.Name.Length)) == "Par_"))
-                    {
-                        rp.AddToParameters(xmlReader.Name, double.Parse(xmlReader.GetAttribute(0)));
-                    }
-
-                    if ((xmlReader.Name.Substring(0, Math.Min(5, xmlReader.Name.Length)) == "extra"))
-                    {
-                        rp.AddToParameters(xmlReader.Name, double.Parse(xmlReader.GetAttribute(0)));
-                    }
-
-                    if ((xmlReader.Name.Substring(0, Math.Min(6, xmlReader.Name.Length)) == "string"))
-                    {
-                        rp.AddToParameters(xmlReader.Name, xmlReader.GetAttribute(0));
-                    }
-                }
-
-                xmlReader.Close();
-            }
 
             if(filename.Contains(".json"))
             {
                 rp.JsonParameters = File.ReadAllText(filename);
                 rp.JsonParams = JsonConvert.DeserializeObject(rp.JsonParameters);
 
-                rp.AddToParameters("string_SpecsFile", filename);
-
-                foreach(var property in rp.JsonParams.gaparams.Properties())
-                {
-                    rp.AddToParameters(property.Name, property.Value.Value);
-                }
-
-                /*int Length = 0;
-                foreach(var param in rp.JsonParams.parameters)
-                {
-                    Length += (int)param.enabled == 1 ? 1 : 0;
-                }
-
-                rp.AddToParameters("Par_Length", Length);*/
-
-                if (rp.JsonParams.bridge.type == "local")
-                {
-                    rp.AddToParameters("string_Bridge_Type", "local");
-                    rp.AddToParameters("string_Bridge_Local_Exe", (string)rp.JsonParams.bridge.executable);
-                } else
-                {
-                    rp.AddToParameters("string_Bridge_Type", "remote");
-                    rp.AddToParameters("string_Bridge_Remote_Server", (string)rp.JsonParams.bridge.server);
-                    rp.AddToParameters("string_Bridge_Remote_Port", (string)rp.JsonParams.bridge.port);
-                    rp.AddToParameters("string_Bridge_Remote_Username", (string)rp.JsonParams.bridge.username);
-                    rp.AddToParameters("string_Bridge_Remote_Password", (string)rp.JsonParams.bridge.password);
-                }
+                rp.JsonParams.gaparams["string_SpecsFile"] = filename;
             }
 
             return rp;

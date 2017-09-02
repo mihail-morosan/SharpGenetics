@@ -60,15 +60,17 @@ namespace SharpGenetics.FunctionRegression
 
             XNode x = null;
 
-            if(val == 0 || (val == 1 && (int)(double)Manager.GetParameters().GetParameter("InputCount") == 0)) // Nr
+            int InputCount = Manager.GetParameters().GetParameter<int>("InputCount", 0);
+
+            if (val == 0 || (val == 1 && InputCount == 0)) // Nr
             {
-                x = new NrNode(rand.Next((int)(double)Manager.GetParameters().GetParameter("extra_constant_max")), parent);
+                x = new NrNode(rand.Next(Manager.GetParameters().GetParameter<int>("extra_constant_max", 1)), parent);
             }
 
-            if(val == 1 && (int)(double)Manager.GetParameters().GetParameter("InputCount") > 0) // Var
+            if(val == 1 && InputCount > 0) // Var
             {
-                int inputVarToPick = rand.Next((int)(double)Manager.GetParameters().GetParameter("InputCount"));
-                string valueOfVar = (string)Manager.GetParameters().GetParameter("Input" + inputVarToPick);
+                int inputVarToPick = rand.Next(InputCount);
+                string valueOfVar = Manager.GetParameters().GetParameter<string>("Input" + inputVarToPick,"");
                 x = new VarNode(valueOfVar, parent);
             }
 
@@ -193,7 +195,7 @@ namespace SharpGenetics.FunctionRegression
             XNode newRoot = root1.Clone();
             xa = newRoot.GetNthNode(m1);
 
-            int NewNodeMaxDepth = (int)(double)Manager.GetParameters().GetParameter("extra_node_depth") - xa.NodeDepth();
+            int NewNodeMaxDepth = (int)(double)Manager.GetParameters().GetParameter("extra_node_depth",1) - xa.NodeDepth();
 
             xb = GenerateTree(NewNodeMaxDepth, xa.parent);
 
@@ -251,7 +253,7 @@ namespace SharpGenetics.FunctionRegression
         public override void ReloadParameters<T, I, O>(PopulationManager<T, I, O> Manager)
         {
             this.Manager = Manager as PopulationManager<FunctionRegression, double, double>;
-            Depth = (int)(double)Manager.GetParameters().GetParameter("extra_node_depth");
+            Depth = (int)(double)Manager.GetParameters().GetParameter("extra_node_depth",1);
         }
 
         public override PopulationManager<T, I, O> GetParentManager<T, I, O>()
