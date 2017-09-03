@@ -53,9 +53,6 @@ namespace SharpGenetics.Predictor
         [ImportantParameter("extra_Predictor_C45_TotalClasses", "Number of Output Classes", 0, 20, 4)]
         public int TotalClasses { get; set; }
 
-        [DataMember]
-        public double NetworkAccuracy = -1;
-
         public DecisionTreeC45Predictor(RunParameters Parameters, int RandomSeed)
         {
             Accord.Math.Random.Generator.Seed = RandomSeed;

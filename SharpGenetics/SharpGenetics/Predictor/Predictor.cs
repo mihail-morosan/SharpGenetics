@@ -29,11 +29,14 @@ namespace SharpGenetics.Predictor
         }
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_MinimumAccuracy", "Minimum Accuracy Required", 1, 100, 75)]
-        public int MinimumAccuracy { get; set; }
+        public double NetworkAccuracy = -1;
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_MaxTrainingData", "Maximum Training Data Stored", 1, 1000, 100)]
+        [ImportantParameter("extra_Predictor_MinimumAccuracy", "Minimum Accuracy Required", 0.01, 0.75, 0.75)]
+        public double MinimumAccuracy { get; set; }
+
+        [DataMember]
+        [ImportantParameter("extra_Predictor_TrainingDataTotal", "Maximum Training Data Stored", 1, 1000, 100)]
         public int TrainingDataTotalCount { get; set; }
 
         [DataMember]

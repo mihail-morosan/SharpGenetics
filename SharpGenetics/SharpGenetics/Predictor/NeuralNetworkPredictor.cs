@@ -65,9 +65,6 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        [DataMember]
-        public double NetworkAccuracy = -1;
-
         public NeuralNetworkPredictor(RunParameters Parameters, int RandomSeed)
         {
             PredictorHelper.ApplyPropertiesToPredictor<NeuralNetworkPredictor>(this, Parameters);
@@ -167,11 +164,6 @@ namespace SharpGenetics.Predictor
             return Result;
         }
 
-        public  double GetAccuracy()
-        {
-            return NetworkAccuracy;
-        }
-
         public List<double> GenerateScoresFromGaussianDistribution(int Samples, double Mean, double StdDev)
         {
             Accord.Statistics.Distributions.Univariate.NormalDistribution Dist = new Accord.Statistics.Distributions.Univariate.NormalDistribution(Mean, StdDev);
@@ -262,7 +254,7 @@ namespace SharpGenetics.Predictor
 
         public override void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
         {
-            if (GetAccuracy() >= MinimumAccuracy) 
+            if (NetworkAccuracy >= MinimumAccuracy) 
             {
                 double LowerPredThreshold = 0;
                 double UpperPredThreshold = double.PositiveInfinity;
