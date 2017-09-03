@@ -33,10 +33,22 @@ namespace SharpGenetics.Predictor
         public int MinimumAccuracy { get; set; }
 
         [DataMember]
-        public int RandomSeed = 0;
+        [ImportantParameter("extra_Predictor_MaxTrainingData", "Maximum Training Data Stored", 1, 1000, 100)]
+        public int TrainingDataTotalCount { get; set; }
 
         [DataMember]
-        public List<int> PredictionsByGeneration = new List<int>();
+        [ImportantParameter("extra_Predictor_TrainingDataHigh", "Training Data High Values Capacity", 0, 1000, 25)]
+        public int TrainingDataHighCount { get; set; }
+
+        [DataMember]
+        [ImportantParameter("extra_Predictor_TrainingDataLow", "Training Data Low Values Capacity", 0, 1000, 25)]
+        public int TrainingDataLowCount { get; set; }
+
+        [DataMember]
+        public WeightedTrainingSet NetworkTrainingData;
+
+        [DataMember]
+        public int RandomSeed = 0;
 
         [DataMember]
         public int AcceptedPredictions = 0;
@@ -51,18 +63,16 @@ namespace SharpGenetics.Predictor
         public List<int> FalseNegativesByGeneration = new List<int>();
 
         public static readonly object NetworkLock = new object();
+        
+        public void CreateTrainingSet()
+        {
+            NetworkTrainingData = new WeightedTrainingSet(TrainingDataHighCount, TrainingDataLowCount, TrainingDataTotalCount);
+        }
 
         public void IncrementPredictionCount(int Generation, bool Accepted)
         {
             lock (NetworkLock)
             {
-                while (Generation >= PredictionsByGeneration.Count)
-                {
-                    PredictionsByGeneration.Add(0);
-                }
-
-                PredictionsByGeneration[Generation]++;
-
                 if (Accepted)
                 {
                     AcceptedPredictions++;

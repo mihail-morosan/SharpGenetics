@@ -25,15 +25,7 @@ namespace SharpGenetics.Predictor
         [DataMember]
         [ImportantParameter("extra_Predictor_HiddenLayerCount", "Hidden Layer Count", 1, 200, 1)]
         public int HiddenLayer { get; set; }
-        [DataMember]
-        [ImportantParameter("extra_Predictor_MaxTrainingData", "Maximum Training Data Stored", 1, 1000, 100)]
-        public int MaxTrainingData { get; set; }
-        [DataMember]
-        [ImportantParameter("extra_Predictor_TrainingDataHigh", "Training Data High Values Capacity", 0, 1000, 25)]
-        public int TrainingDataHighCount { get; set; }
-        [DataMember]
-        [ImportantParameter("extra_Predictor_TrainingDataLow", "Training Data Low Values Capacity", 0, 1000, 25)]
-        public int TrainingDataLowCount { get; set; }
+        
         [DataMember]
         [ImportantParameter("extra_Predictor_TrainingEpochs", "Training Epochs Per Generation", 1, 1000, 100)]
         public int TrainingEpochsPerGeneration { get; set; }
@@ -57,9 +49,6 @@ namespace SharpGenetics.Predictor
         public List<double> MinOutputVal = new List<double>();
 
         public ActivationNetwork Network = null;
-
-        [DataMember]
-        public WeightedTrainingSet NetworkTrainingData;
 
         byte[] NetworkSerializeValue;
 
@@ -123,7 +112,7 @@ namespace SharpGenetics.Predictor
             this.RandomSeed = RandomSeed;
             Accord.Math.Random.Generator.Seed = RandomSeed;
 
-            NetworkTrainingData = new WeightedTrainingSet(TrainingDataHighCount, TrainingDataLowCount, MaxTrainingData);
+            CreateTrainingSet();
 
             Setup();
         }
@@ -139,8 +128,9 @@ namespace SharpGenetics.Predictor
                         Network = Accord.IO.Serializer.Load<ActivationNetwork>(NetworkSerializeValue);
                     } else
                     {
-                        Network = new ActivationNetwork(new BipolarSigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
-                        NguyenWidrow initializer = new NguyenWidrow(Network);
+                        Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
+                        //NguyenWidrow initializer = new NguyenWidrow(Network);
+                        GaussianWeights initializer = new GaussianWeights(Network);
                         initializer.Randomize();
                     }
                 }
@@ -191,7 +181,7 @@ namespace SharpGenetics.Predictor
 
         public void TrainNetwork(double BaseScoreError)
         {
-            if (NetworkTrainingData.Count() < MaxTrainingData)
+            if (NetworkTrainingData.Count() < TrainingDataTotalCount)
             {
                 NetworkAccuracy = -1;
                 return;
@@ -267,49 +257,12 @@ namespace SharpGenetics.Predictor
 
             SumAccuracyRatio /= OutputLayer;
 
-            //NetworkAccuracy = 1 - DiffAverage;
-
             NetworkAccuracy = 1 - (SumAccuracyRatio * (MaxOutputVal.Sum() - MinOutputVal.Sum()) + MinOutputVal.Sum()) / BaseScoreError;
-
-            //NetworkAccuracy = 1 - SumAccuracyRatio;
-
-            /*foreach(var In in NetworkTrainingData)
-            {
-                var outputVal = Network.Compute(In.Inputs.ToArray());
-                for (int i = 0; i < In.Outputs.Count; i++)
-                {
-                    DiffOnTraining[i] += Math.Abs(In.Outputs[i] - outputVal[i]);
-                }
-            }*/
-
-            /*DiffPerSample = Math.Max(Diff.Sum() / (ValidationSet.Count * OutputLayer), DiffOnTraining.Sum() / (NetworkTrainingData.Count * OutputLayer));
-
-            DiffPerSampleNotNormalised = 0;
-
-            for (int i = 0; i < OutputLayer; i++)
-            {
-                DiffPerSampleNotNormalised += (Diff[i] / (ValidationSet.Count * OutputLayer)) * (MaxOutputVal[i] - MinOutputVal[i]) + MinOutputVal[i];
-            }*/
-
-
-            /*if (DiffPerSampleNotNormalised >= 0)
-                DiffPerSampleNotNormalisedHistory.Add(DiffPerSampleNotNormalised);
-
-            if (BaseScoreError <= 0 || NetworkTrainingData.Count < MinTrainingData || DiffPerSampleNotNormalised < 0)
-                NetworkAccuracy = -1;
-            else
-                NetworkAccuracy = 1.0d - (DiffPerSampleNotNormalised / BaseScoreError);*/
-
-            //var AggregateDiffPerSample = DiffPerSampleNotNormalisedHistory.Skip(Math.Max(DiffPerSampleNotNormalisedHistory.Count - 3, 0)).Average();
-
-            //NetworkAccuracy = 1.0d - (AggregateDiffPerSample / BaseScoreError);
         }
 
         public override void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
         {
-            //Go through each individual
-            //Set fitness if below threshold
-            if (GetAccuracy() > 0.75) //TODO change to parameter
+            if (GetAccuracy() >= MinimumAccuracy) 
             {
                 double LowerPredThreshold = 0;
                 double UpperPredThreshold = double.PositiveInfinity;

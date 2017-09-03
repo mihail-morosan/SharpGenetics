@@ -19,9 +19,6 @@ namespace SharpGenetics.Predictor
     [DataContract]
     public class DecisionTreeC45Predictor : ResultPredictor<List<double>, List<double>>
     {
-        [DataMember]
-        public WeightedTrainingSet NetworkTrainingData;
-
         DecisionTree Tree = null;
 
         byte[] NetworkSerializeValue;
@@ -49,20 +46,8 @@ namespace SharpGenetics.Predictor
         double ThirdQuart = 0;
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_C45_ThresholdClass", "Threshold Class For Accepting Predictions", 0, 3, 2)]
+        [ImportantParameter("extra_Predictor_C45_ThresholdClass", "Threshold Class For Accepting Predictions", 0, 20, 2)]
         public int ThresholdClass { get; set; }
-
-        [DataMember]
-        [ImportantParameter("extra_Predictor_C45_TrainingDataHigh", "Training Data High Values Capacity", 0, 200, 25)]
-        public int TrainingDataHighCount { get; set; }
-
-        [DataMember]
-        [ImportantParameter("extra_Predictor_C45_TrainingDataLow", "Training Data Low Values Capacity", 0, 200, 25)]
-        public int TrainingDataLowCount { get; set; }
-
-        [DataMember]
-        [ImportantParameter("extra_Predictor_C45_TrainingDataTotal", "Training Data Total Capacity", 0, 200, 100)]
-        public int TrainingDataTotalCount { get; set; }
 
         [DataMember]
         [ImportantParameter("extra_Predictor_C45_TotalClasses", "Number of Output Classes", 0, 20, 4)]
@@ -77,7 +62,7 @@ namespace SharpGenetics.Predictor
 
             PredictorHelper.ApplyPropertiesToPredictor<DecisionTreeC45Predictor>(this, Parameters);
 
-            NetworkTrainingData = new WeightedTrainingSet(TrainingDataHighCount, TrainingDataLowCount, TrainingDataTotalCount);
+            CreateTrainingSet();
 
             Setup();
         }
@@ -172,7 +157,7 @@ namespace SharpGenetics.Predictor
 
             NetworkAccuracy = 1 - (Accuracy / ValidationSet.Count());
 
-            if (NetworkAccuracy >= 0.75)
+            if (NetworkAccuracy >= MinimumAccuracy)
             {
                 foreach (var Indiv in Population)
                 {
