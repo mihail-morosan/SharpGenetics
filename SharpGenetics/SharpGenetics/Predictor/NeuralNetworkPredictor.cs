@@ -48,7 +48,7 @@ namespace SharpGenetics.Predictor
         [DataMember]
         public List<double> MinOutputVal = new List<double>();
 
-        public ActivationNetwork Network = null;
+        public DeepBeliefNetwork Network = null;
 
         byte[] NetworkSerializeValue;
 
@@ -122,10 +122,11 @@ namespace SharpGenetics.Predictor
                 {
                     if (NetworkSerializeValue != null)
                     {
-                        Network = Accord.IO.Serializer.Load<ActivationNetwork>(NetworkSerializeValue);
+                        Network = Accord.IO.Serializer.Load<DeepBeliefNetwork>(NetworkSerializeValue);
                     } else
                     {
-                        Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
+                        Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
+                        //Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
                         //NguyenWidrow initializer = new NguyenWidrow(Network);
                         GaussianWeights initializer = new GaussianWeights(Network);
                         initializer.Randomize();
@@ -136,7 +137,6 @@ namespace SharpGenetics.Predictor
 
         public void AddInputOutputToData(List<double> ParamsToSend, List<double> Outputs)
         {
-            //Maybe only add different inputs / outputs?
             lock (NetworkLock)
             {
                 for(int i=0;i<Outputs.Count;i++)
@@ -164,13 +164,6 @@ namespace SharpGenetics.Predictor
             return Result;
         }
 
-        public List<double> GenerateScoresFromGaussianDistribution(int Samples, double Mean, double StdDev)
-        {
-            Accord.Statistics.Distributions.Univariate.NormalDistribution Dist = new Accord.Statistics.Distributions.Univariate.NormalDistribution(Mean, StdDev);
-
-            return Dist.Generate(Samples).ToList();
-        }
-
         public void TrainNetwork(double BaseScoreError)
         {
             if (NetworkTrainingData.Count() < TrainingDataTotalCount)
@@ -184,14 +177,14 @@ namespace SharpGenetics.Predictor
 
             var teacher = new BackPropagationLearning(Network)
             {
-                LearningRate = LearningRate,
-                Momentum = Momentum
+                //LearningRate = LearningRate,
+                //Momentum = Momentum
             };
 
             /*var teacher = new DeepNeuralNetworkLearning(Network as DeepBeliefNetwork)
             {
                 Algorithm = (ann, i) => new ParallelResilientBackpropagationLearning(ann),
-                LayerIndex = 1,
+                LayerIndex = 0,
             };*/
 
             /*var teacher = new LevenbergMarquardtLearning(Network);
@@ -199,7 +192,7 @@ namespace SharpGenetics.Predictor
 
             //NetworkTrainingData.Sort((a, b) => a.Outputs[0].CompareTo(b.Outputs[0]));
 
-            double error = 0;
+            //double error = 0;
 
             var TrainingSet = new List<InputOutputPair>();
             var ValidationSet = new List<InputOutputPair>();
@@ -215,31 +208,39 @@ namespace SharpGenetics.Predictor
                 //foreach (var In in TrainingSet)
                 {
                     //error += teacher.Run(In.Inputs.ToArray(), In.Outputs.ToArray());
-                    error += teacher.RunEpoch(
+                    teacher.RunEpoch(
                         TrainingSet.Select(a => InputOutputPair.Normalise(a.Inputs, MinVal, MaxVal).ToArray()).ToArray(), 
                         TrainingSet.Select(a => InputOutputPair.Normalise(a.Outputs, MinOutputVal, MaxOutputVal).ToArray()).ToArray()
                         );
                 }
             }
 
-            //((DeepBeliefNetwork)Network).UpdateVisibleWeights();
-
-            error /= TrainingSet.Count * 4 / 5;
-            error /= TrainingEpochsPerGeneration;
+            Network.UpdateVisibleWeights();
             
-            List<double> Diff = new List<double>(new double[OutputLayer]);
+            //List<double> Diff = new List<double>(new double[OutputLayer]);
+
+            List<double> DiffTemp = new List<double>(new double[OutputLayer]);
 
             foreach (var In in ValidationSet)
             {
-                var origOutputVal = InputOutputPair.Normalise(In.Outputs, MinOutputVal, MaxOutputVal);
-                var outputVal = Network.Compute(InputOutputPair.Normalise(In.Inputs, MinVal, MaxVal).ToArray());
+                //var origOutputVal = InputOutputPair.Normalise(In.Outputs, MinOutputVal, MaxOutputVal);
+                //var outputVal = Network.Compute(InputOutputPair.Normalise(In.Inputs, MinVal, MaxVal).ToArray());
+                
+                var outputValTemp = Predict(In.Inputs);
+
                 for (int i = 0; i < In.Outputs.Count; i++)
                 {
-                    Diff[i] += Math.Abs(origOutputVal[i] - outputVal[i]);
+                    //Diff[i] += Math.Abs(origOutputVal[i] - outputVal[i]);
+
+                    DiffTemp[i] += Math.Abs(In.Outputs[i] - outputValTemp[i]);
                 }
             }
 
-            double SumAccuracyRatio = 0;
+            double TempNetworkAccuracy = 0;
+            double TempSumAcc = DiffTemp.Select(d => d / ValidationSet.Count).Sum();
+            TempNetworkAccuracy = 1 - (TempSumAcc / BaseScoreError);
+
+            /*double SumAccuracyRatio = 0;
 
             for (int i = 0; i < OutputLayer; i++)
             {
@@ -249,7 +250,8 @@ namespace SharpGenetics.Predictor
 
             SumAccuracyRatio /= OutputLayer;
 
-            NetworkAccuracy = 1 - (SumAccuracyRatio * (MaxOutputVal.Sum() - MinOutputVal.Sum()) + MinOutputVal.Sum()) / BaseScoreError;
+            NetworkAccuracy = 1 - (SumAccuracyRatio * (MaxOutputVal.Sum() - MinOutputVal.Sum()) + MinOutputVal.Sum()) / BaseScoreError;*/
+            NetworkAccuracy = TempNetworkAccuracy;
         }
 
         public override void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
@@ -291,6 +293,8 @@ namespace SharpGenetics.Predictor
 
                 var Rand = new CRandom(RandomSeed + Generation);
 
+                int PredictionsThisGen = 0;
+
                 foreach (var Indiv in Population)
                 {
                     var Result = Predict(Indiv.Vector);
@@ -305,7 +309,14 @@ namespace SharpGenetics.Predictor
                             Indiv.ObjectivesFitness = new List<double>(Result);
                             Indiv.Predicted = true;
                             IncrementPredictionCount(Generation, true);
+
+                            PredictionsThisGen++;
                         }
+                    }
+
+                    if (PredictionsThisGen >= MaxPredictionsPerGenRatio * Population.Count)
+                    {
+                        return;
                     }
                 }
             }

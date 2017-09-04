@@ -108,16 +108,22 @@ namespace SharpGenetics.Predictor
 
         DecisionTree GenerateBestTree(double[][] input, int[] output)
         {
-            int bestJoin = 13;
-            int bestHeight = 15;
-
-            var bestTeacher = new C45Learning
+            try
             {
-                Join = bestJoin,
-                MaxHeight = bestHeight,
-            };
-            
-            return bestTeacher.Learn(input, output);
+                int bestJoin = 13;
+                int bestHeight = 15;
+
+                var bestTeacher = new C45Learning
+                {
+                    Join = bestJoin,
+                    MaxHeight = bestHeight,
+                };
+
+                return bestTeacher.Learn(input, output);
+            } catch
+            {
+                return null;
+            }
         }
 
         public override void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)

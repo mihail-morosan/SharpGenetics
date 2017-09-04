@@ -70,7 +70,7 @@ namespace SharpGenetics.Predictor
                         //knn = Accord.IO.Serializer.Load<KNearestNeighbors>(NetworkSerializeValue);
                     } else
                     {
-                        knn = new KNearestNeighbors();
+                        knn = new KNearestNeighbors(3);
                     }
                 }
             }
@@ -115,7 +115,7 @@ namespace SharpGenetics.Predictor
 
             TrainingData.Shuffle();
 
-            knn = new KNearestNeighbors(5);
+            knn = new KNearestNeighbors(3);
             knn.Learn(TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).ToArray());
             
             double Accuracy = 0;

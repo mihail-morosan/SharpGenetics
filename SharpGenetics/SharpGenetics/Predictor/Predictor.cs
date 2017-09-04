@@ -48,6 +48,10 @@ namespace SharpGenetics.Predictor
         public int TrainingDataLowCount { get; set; }
 
         [DataMember]
+        [ImportantParameter("extra_Predictor_MaxPredictionsPerGenRatio", "Ratio of predictions allowed per generation", 0.0, 1.0, 0.50)]
+        public double MaxPredictionsPerGenRatio { get; set; }
+
+        [DataMember]
         public WeightedTrainingSet NetworkTrainingData;
 
         [DataMember]
