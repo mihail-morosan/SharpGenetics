@@ -48,7 +48,7 @@ namespace SharpGenetics.Predictor
         [DataMember]
         public List<double> MinOutputVal = new List<double>();
 
-        public DeepBeliefNetwork Network = null;
+        public ActivationNetwork Network = null;
 
         byte[] NetworkSerializeValue;
 
@@ -122,11 +122,11 @@ namespace SharpGenetics.Predictor
                 {
                     if (NetworkSerializeValue != null)
                     {
-                        Network = Accord.IO.Serializer.Load<DeepBeliefNetwork>(NetworkSerializeValue);
+                        Network = Accord.IO.Serializer.Load<ActivationNetwork>(NetworkSerializeValue);
                     } else
                     {
-                        Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
-                        //Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
+                        //Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
+                        Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
                         //NguyenWidrow initializer = new NguyenWidrow(Network);
                         GaussianWeights initializer = new GaussianWeights(Network);
                         initializer.Randomize();
@@ -215,7 +215,7 @@ namespace SharpGenetics.Predictor
                 }
             }
 
-            Network.UpdateVisibleWeights();
+            //Network.UpdateVisibleWeights();
             
             //List<double> Diff = new List<double>(new double[OutputLayer]);
 

@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 namespace SharpGenetics.Predictor
 {
     [DataContract]
-    //public abstract class ResultPredictor<Input, Output, Indiv>
     public abstract class ResultPredictor<Input, Output>
     {
         public abstract Output Predict(Input Input);
