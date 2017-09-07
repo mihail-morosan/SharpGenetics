@@ -15,7 +15,21 @@ namespace SharpGenetics.Predictor
     {
         public abstract Output Predict(Input Input);
 
-        public abstract void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError);
+        public virtual void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
+        {
+            lock (NetworkLock)
+            {
+                foreach (var Indiv in Population)
+                {
+                    if (!Indiv.Predicted && Indiv.Fitness >= 0)
+                    {
+                        AddInputOutputToData(Indiv.Vector, Indiv.ObjectivesFitness);
+                    }
+                }
+
+                AssessPopulation(Population, Generation, LowerPredThreshold, UpperPredThreshold);
+            }
+        }
 
         public abstract void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation);
 
@@ -37,6 +51,10 @@ namespace SharpGenetics.Predictor
         [DataMember]
         [ImportantParameter("extra_Predictor_TrainingDataTotal", "Maximum Training Data Stored", 1, 1000, 100)]
         public int TrainingDataTotalCount { get; set; }
+
+        [DataMember]
+        [ImportantParameter("extra_Predictor_TrainingDataMinimum", "Minimum Training Data Required", 1, 1000, 100)]
+        public int TrainingDataMinimum { get; set; }
 
         [DataMember]
         [ImportantParameter("extra_Predictor_TrainingDataHigh", "Training Data High Values Capacity", 0, 1000, 25)]
@@ -69,11 +87,15 @@ namespace SharpGenetics.Predictor
         [DataMember]
         public List<int> FalseNegativesByGeneration = new List<int>();
 
+        public double LowerPredThreshold = 0;
+
+        public double UpperPredThreshold = double.PositiveInfinity;
+
         public static readonly object NetworkLock = new object();
         
         public void CreateTrainingSet()
         {
-            NetworkTrainingData = new WeightedTrainingSet(TrainingDataHighCount, TrainingDataLowCount, TrainingDataTotalCount);
+            NetworkTrainingData = new WeightedTrainingSet(TrainingDataHighCount, TrainingDataLowCount, TrainingDataMinimum, TrainingDataTotalCount);
         }
 
         public void IncrementPredictionCount(int Generation, bool Accepted)

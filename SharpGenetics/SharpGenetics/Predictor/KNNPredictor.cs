@@ -82,18 +82,13 @@ namespace SharpGenetics.Predictor
 
         public override void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
         {
+            LowerPredThreshold = CreateOutputFromClass(ThresholdClass, FirstQuart, Median, ThirdQuart, TotalClasses).Sum();
+            UpperPredThreshold = double.PositiveInfinity;
+
+            base.AfterGeneration(Population, Generation, BaseScoreError);
+
             lock (NetworkLock)
             {
-                foreach (var Indiv in Population)
-                {
-                    if (!Indiv.Predicted && Indiv.Fitness >= 0)
-                    {
-                        AddInputOutputToData(Indiv.Vector, Indiv.ObjectivesFitness);
-                    }
-                }
-
-                AssessPopulation(Population, Generation, CreateOutputFromClass(ThresholdClass, FirstQuart, Median, ThirdQuart, TotalClasses).Sum(), double.PositiveInfinity);
-
                 var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
 
                 FirstQuart = 0;
@@ -106,7 +101,7 @@ namespace SharpGenetics.Predictor
         {
             var TrainingData = NetworkTrainingData.GetAllValues();
 
-            if(TrainingData.Count < TrainingDataTotalCount)
+            if(TrainingData.Count < TrainingDataMinimum)
             {
                 return;
             }

@@ -163,7 +163,7 @@ namespace SharpGenetics.Predictor
 
         public void TrainNetwork(double BaseScoreError)
         {
-            if (NetworkTrainingData.Count() < TrainingDataTotalCount)
+            if (NetworkTrainingData.Count() < TrainingDataMinimum)
             {
                 NetworkAccuracy = -1;
                 return;
