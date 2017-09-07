@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Accord.Math;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -74,11 +75,16 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public override List<InputOutputPair> GetAllValues()
+        public override List<InputOutputPair> GetAllValues(bool Shuffle = false)
         {
-            var All = new List<InputOutputPair>(OtherValues);
-            All.AddRange(HighValues);
+            var All = new List<InputOutputPair>(HighValues);
             All.AddRange(LowValues);
+            All.AddRange(OtherValues);
+
+            if(Shuffle)
+            {
+                All.Shuffle();
+            }
 
             return All;
         }

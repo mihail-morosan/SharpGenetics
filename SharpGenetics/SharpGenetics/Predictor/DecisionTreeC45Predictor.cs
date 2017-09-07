@@ -78,14 +78,6 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public void AddInputOutputToData(List<double> ParamsToSend, List<double> Outputs)
-        {
-            lock (NetworkLock)
-            {
-                NetworkTrainingData.AddIndividualToTrainingSet(new InputOutputPair(ParamsToSend, Outputs));
-            }
-        }
-
         public override void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
         {
             lock (NetworkLock)
@@ -97,6 +89,8 @@ namespace SharpGenetics.Predictor
                         AddInputOutputToData(Indiv.Vector, Indiv.ObjectivesFitness);
                     }
                 }
+                
+                AssessPopulation(Population, Generation, CreateOutputFromClass(ThresholdClass, FirstQuart, Median, ThirdQuart, TotalClasses).Sum(), double.PositiveInfinity);
 
                 var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
 
@@ -135,8 +129,6 @@ namespace SharpGenetics.Predictor
                 return;
             }
 
-            TrainingData.Shuffle();
-
             double[][] input = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray();
             int[] output = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).ToArray();
 
@@ -168,7 +160,7 @@ namespace SharpGenetics.Predictor
                     if (PassesThresholdCheck(PredictedClass) && Indiv.Fitness < 0) // 0 -> (0,FirstQuart); 1 -> (FirstQuart,Median); 2 -> (Median,ThirdQuart); 3 -> (ThirdQuart,Infinity)
                     {
                         var Result = Predict(Indiv.Vector);
-                        Indiv.Fitness = Result.Sum();
+                        //Indiv.Fitness = Result.Sum();
                         Indiv.ObjectivesFitness = new List<double>(Result);
                         Indiv.Predicted = true;
                         IncrementPredictionCount(Generation, true);

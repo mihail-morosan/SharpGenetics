@@ -253,7 +253,7 @@ namespace SharpGenetics.BaseClasses
                 foreach (var e in doneEvents)
                     e.WaitOne();
 
-                Console.WriteLine(NumberOfRuns + " generations passed - Current generation: " + CurrentGen);
+                //Console.WriteLine(NumberOfRuns + " generations passed - Current generation: " + CurrentGen);
 
                 CurrentGen += NumberOfRuns;
                 GenerationsThisSubRun += NumberOfRuns;
@@ -270,7 +270,7 @@ namespace SharpGenetics.BaseClasses
                 //End check
 
 
-                Console.WriteLine("Completion test");
+                //Console.WriteLine("Completion test");
 
                 //If Generation Island Refresh is set, create a new population with the best members from other populations and remove the worst one
                 if ((RefreshGenCount > 0) && (CurrentGen % RefreshGenCount == 0))
@@ -278,9 +278,8 @@ namespace SharpGenetics.BaseClasses
                     //Get top X from each population and add them into a new population
                     //Find the population with the worst fitness and remove it
                     //Add the new population
-
-
-                    Console.WriteLine("Time to refresh islands");
+                    
+                    //Console.WriteLine("Time to refresh islands");
 
                     int _rand = mainRandom.Next();
 

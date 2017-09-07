@@ -90,6 +90,7 @@
     <Compile Include="Predictor\DecisionTreeC45Predictor.cs" />
     <Compile Include="Predictor\InputOutputPair.cs" />
     <Compile Include="Predictor\KNNPredictor.cs" />
+    <Compile Include="Predictor\NeuralNetworkOneOutputPredictor.cs" />
     <Compile Include="Predictor\NeuralNetworkPredictor.cs" />
     <Compile Include="Predictor\Predictor.cs" />
     <Compile Include="Predictor\TrainingSet.cs" />

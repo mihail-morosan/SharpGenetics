@@ -100,6 +100,9 @@ namespace SharpGenetics.BaseClasses
 
         [DataMember]
         public List<double> ObjectivesFitness { get; set; }
+        
+        [DataMember]
+        public double RealFitness = -1;
 
         [DataMember]
         public List<double> Vector { get; set; }

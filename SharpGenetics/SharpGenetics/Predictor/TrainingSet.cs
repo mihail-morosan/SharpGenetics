@@ -14,6 +14,6 @@ namespace SharpGenetics.Predictor
 
         public abstract void AddIndividualToTrainingSet(InputOutputPair Individual);
 
-        public abstract List<InputOutputPair> GetAllValues();
+        public abstract List<InputOutputPair> GetAllValues(bool Shuffle = false);
     }
 }

@@ -51,6 +51,10 @@ namespace SharpGenetics.Predictor
         public double MaxPredictionsPerGenRatio { get; set; }
 
         [DataMember]
+        [ImportantParameter("extra_Predictor_SkipRandom", "Skip predicting randomly generated individuals", 0, 1, 0)]
+        public int SkipRandomIndividuals { get; set; }
+
+        [DataMember]
         public WeightedTrainingSet NetworkTrainingData;
 
         [DataMember]
@@ -61,9 +65,6 @@ namespace SharpGenetics.Predictor
 
         [DataMember]
         public List<int> AcceptedPredictionsByGeneration = new List<int>();
-
-        [DataMember]
-        public List<int> FalsePositivesByGeneration = new List<int>();
 
         [DataMember]
         public List<int> FalseNegativesByGeneration = new List<int>();
@@ -92,6 +93,25 @@ namespace SharpGenetics.Predictor
             }
         }
 
+        public virtual void AddInputOutputToData(List<double> ParamsToSend, List<double> Outputs)
+        {
+            lock (NetworkLock)
+            {
+                NetworkTrainingData.AddIndividualToTrainingSet(new InputOutputPair(ParamsToSend, Outputs));
+            }
+        }
+
+        public void AssessPopulation(List<PopulationMember> Population, int Generation, double LowerPredThreshold, double UpperPredThreshold)
+        {
+            foreach (var Indiv in Population)
+            {
+                if (Indiv.Predicted)
+                {
+                    ConfirmResult(Generation, Indiv.Fitness, Indiv.RealFitness, LowerPredThreshold, UpperPredThreshold);
+                }
+            }
+        }
+
         public void ConfirmResult(int Generation, double PredictedResult, double ActualResult, double ValueThreshold, double ValueThresholdMax)
         {
             lock (NetworkLock)
@@ -101,17 +121,7 @@ namespace SharpGenetics.Predictor
                     FalseNegativesByGeneration.Add(0);
                 }
 
-                while (Generation >= FalsePositivesByGeneration.Count)
-                {
-                    FalsePositivesByGeneration.Add(0);
-                }
-
-                if (PredictedResult < ValueThreshold && ActualResult > ValueThreshold)
-                {
-                    FalsePositivesByGeneration[Generation]++;
-                }
-
-                if (PredictedResult > ValueThreshold && ActualResult < ValueThreshold && PredictedResult < ValueThresholdMax)
+                if (PredictedResult > ValueThreshold && (ActualResult < ValueThreshold || ActualResult > ValueThresholdMax) && PredictedResult < ValueThresholdMax)
                 {
                     FalseNegativesByGeneration[Generation]++;
                 }

@@ -48,6 +48,10 @@ namespace SharpGenetics.Predictor
         [ImportantParameter("extra_Predictor_KNN_TotalClasses", "Number of Output Classes", 0, 20, 4)]
         public int TotalClasses { get; set; }
 
+        [DataMember]
+        [ImportantParameter("extra_Predictor_KNN_KValue", "Value of K", 2, 10, 3)]
+        public int KValue { get; set; }
+
         public KNNPredictor(RunParameters Parameters, int RandomSeed)
         {
             Accord.Math.Random.Generator.Seed = RandomSeed;
@@ -70,17 +74,9 @@ namespace SharpGenetics.Predictor
                         //knn = Accord.IO.Serializer.Load<KNearestNeighbors>(NetworkSerializeValue);
                     } else
                     {
-                        knn = new KNearestNeighbors(3);
+                        knn = new KNearestNeighbors(KValue);
                     }
                 }
-            }
-        }
-
-        public void AddInputOutputToData(List<double> ParamsToSend, List<double> Outputs)
-        {
-            lock (NetworkLock)
-            {
-                NetworkTrainingData.AddIndividualToTrainingSet(new InputOutputPair(ParamsToSend, Outputs));
             }
         }
 
@@ -95,7 +91,9 @@ namespace SharpGenetics.Predictor
                         AddInputOutputToData(Indiv.Vector, Indiv.ObjectivesFitness);
                     }
                 }
-                
+
+                AssessPopulation(Population, Generation, CreateOutputFromClass(ThresholdClass, FirstQuart, Median, ThirdQuart, TotalClasses).Sum(), double.PositiveInfinity);
+
                 var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
 
                 FirstQuart = 0;
@@ -113,9 +111,7 @@ namespace SharpGenetics.Predictor
                 return;
             }
 
-            TrainingData.Shuffle();
-
-            knn = new KNearestNeighbors(3);
+            knn = new KNearestNeighbors(KValue);
             knn.Learn(TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).ToArray());
             
             double Accuracy = 0;
@@ -147,7 +143,7 @@ namespace SharpGenetics.Predictor
                         if (PassesThresholdCheck(PredictedClass) && Indiv.Fitness < 0) // 0 -> (0,FirstQuart); 1 -> (FirstQuart,Median); 2 -> (Median,ThirdQuart); 3 -> (ThirdQuart,Infinity)
                         {
                             var Result = Predict(Indiv.Vector);
-                            Indiv.Fitness = Result.Sum();
+                            //Indiv.Fitness = Result.Sum();
                             Indiv.ObjectivesFitness = new List<double>(Result);
                             Indiv.Predicted = true;
                             IncrementPredictionCount(Generation, true);
