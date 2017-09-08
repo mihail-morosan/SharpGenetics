@@ -39,7 +39,7 @@ namespace SharpGenetics.Predictor
         public int UpperBoundForPredictionThreshold { get; set; }
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_NN_ChanceToEvaluateAnyway", "Chance inverse to network accuracy to evaluated predicted individual anyway", 0, 1, 1)]
+        [ImportantParameter("extra_Predictor_NN_ChanceToEvaluateAnyway", "Chance inverse to network accuracy to evaluate predicted individual anyway", 0, 1, 1)]
         public int ChanceToEvaluateAnyway { get; set; }
 
         [DataMember]
