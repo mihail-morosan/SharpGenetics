@@ -95,6 +95,11 @@ namespace SharpGenetics.Predictor
         
         public void CreateTrainingSet()
         {
+            if(TrainingDataMinimum > TrainingDataTotalCount)
+            {
+                TrainingDataMinimum = TrainingDataTotalCount;
+            }
+
             NetworkTrainingData = new WeightedTrainingSet(TrainingDataHighCount, TrainingDataLowCount, TrainingDataMinimum, TrainingDataTotalCount);
         }
 
