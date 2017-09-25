@@ -1,4 +1,5 @@
 ﻿using Accord.Math;
+using Accord.Math.Optimization.Losses;
 using Accord.Neuro;
 using Accord.Neuro.Learning;
 using Accord.Neuro.Networks;
@@ -15,7 +16,7 @@ using System.Threading.Tasks;
 namespace SharpGenetics.Predictor
 {
     [DataContract]
-    public class NeuralNetworkPredictor : ResultPredictor<List<double>, List<double>>
+    public class NeuralNetworkPredictor : ResultPredictor
     {
         [DataMember]
         public int InputLayer = 1;
@@ -56,9 +57,8 @@ namespace SharpGenetics.Predictor
 
         byte[] NetworkSerializeValue;
 
-        double LowerPredThreshold = 0;
-
-        double UpperPredThreshold = double.PositiveInfinity;
+        [DataMember]
+        public double PredictorFitnessError { get; set; }
 
         [DataMember]
         public byte[] NetworkSerialize
@@ -135,10 +135,10 @@ namespace SharpGenetics.Predictor
                     else
                     {
                         //Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
-                        Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
+                        Network = new ActivationNetwork(new BipolarSigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
                         //Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, 1);
-                        //NguyenWidrow initializer = new NguyenWidrow(Network);
-                        GaussianWeights initializer = new GaussianWeights(Network);
+                        NguyenWidrow initializer = new NguyenWidrow(Network);
+                        //GaussianWeights initializer = new GaussianWeights(Network);
                         initializer.Randomize();
                     }
                 }
@@ -172,7 +172,7 @@ namespace SharpGenetics.Predictor
             double LearningRate = 0.1;
             double Momentum = 0.5;
 
-            var teacher = new BackPropagationLearning(Network)
+            var teacher = new ParallelResilientBackpropagationLearning(Network)
             {
                 //LearningRate = LearningRate,
                 //Momentum = Momentum
@@ -216,7 +216,7 @@ namespace SharpGenetics.Predictor
 
             //List<double> Diff = new List<double>(new double[OutputLayer]);
 
-            List<double> DiffTemp = new List<double>(new double[OutputLayer]);
+            /*List<double> DiffTemp = new List<double>(new double[OutputLayer]);
 
             foreach (var In in ValidationSet)
             {
@@ -237,22 +237,27 @@ namespace SharpGenetics.Predictor
             double TempSumAcc = DiffTemp.Select(d => d / ValidationSet.Count).Sum();
             TempNetworkAccuracy = 1 - (TempSumAcc / BaseScoreError);
 
-            /*double SumAccuracyRatio = 0;
+            PredictorFitnessError = TempSumAcc;*/
 
-            for (int i = 0; i < OutputLayer; i++)
-            {
-                Diff[i] /= ValidationSet.Count;
-                SumAccuracyRatio += Diff[i];
-            }
+            /*double[][] ValidationPredictions = ValidationSet.Select(e => Predict(e.Inputs).ToArray()).ToArray();
+            double[][] ValidationTruth = ValidationSet.Select(e => e.Outputs.ToArray()).ToArray();
 
-            SumAccuracyRatio /= OutputLayer;
+            //double errorHamming = new HammingLoss(ValidationTruth).Loss(ValidationPredictions);
+            double errorSquare = Math.Sqrt(new SquareLoss(ValidationTruth).Loss(ValidationPredictions));
+            double accuracySquare = 1 - (errorSquare / BaseScoreError);
 
-            NetworkAccuracy = 1 - (SumAccuracyRatio * (MaxOutputVal.Sum() - MinOutputVal.Sum()) + MinOutputVal.Sum()) / BaseScoreError;*/
-            NetworkAccuracy = TempNetworkAccuracy;
+            PredictorFitnessError = errorSquare;*/
+
+            //NetworkAccuracy = TempNetworkAccuracy;
+            double PFE;
+            NetworkAccuracy = CalculateValidationAccuracy(ValidationSet, BaseScoreError, out PFE);
+            PredictorFitnessError = PFE;
         }
 
         public override void AtStartOfGeneration(List<PopulationMember> Population, RunMetrics RunMetrics, int Generation)
         {
+            TrainNetwork(RunMetrics.ThirdQuartileOfFitnesses.LastOrDefault().Value);
+
             if (NetworkAccuracy >= MinimumAccuracy)
             {
                 //double LowerPredThreshold = 0;
@@ -269,6 +274,9 @@ namespace SharpGenetics.Predictor
                     case 3:
                         LowerPredThreshold = RunMetrics.ThirdQuartileOfFitnesses.LastOrDefault().Value;
                         break;
+                    case 0:
+                        LowerPredThreshold = double.PositiveInfinity;
+                        break;
                     default:
                         break;
                 }
@@ -283,6 +291,9 @@ namespace SharpGenetics.Predictor
                         break;
                     case 3:
                         UpperPredThreshold = RunMetrics.ThirdQuartileOfFitnesses.LastOrDefault().Value;
+                        break;
+                    case 0:
+                        UpperPredThreshold = double.PositiveInfinity;
                         break;
                     default:
                         break;
@@ -302,7 +313,6 @@ namespace SharpGenetics.Predictor
                         var PredictChance = (ChanceToEvaluateAnyway == 1) ? (PredictVal < NetworkAccuracy) : true;
                         if (PredictChance)
                         {
-                            //Indiv.Fitness = Sum;
                             Indiv.ObjectivesFitness = new List<double>(Result);
                             Indiv.Predicted = true;
                             IncrementPredictionCount(Generation, true);
@@ -321,10 +331,11 @@ namespace SharpGenetics.Predictor
 
         public bool PassesThresholdCheck(double Prediction, double LowerPredThreshold, double UpperPredThreshold)
         {
-            double NewPrediction = Prediction;
+            //double NewPrediction = Prediction;
             //double NewPrediction = NetworkAccuracy * Prediction;
 
-            return NewPrediction > LowerPredThreshold && NewPrediction < UpperPredThreshold;
+            //return NewPrediction > LowerPredThreshold && NewPrediction < UpperPredThreshold;
+            return (Prediction - PredictorFitnessError) > LowerPredThreshold && (Prediction + PredictorFitnessError) < UpperPredThreshold;
         }
 
         public override void AddInputOutputToData(List<double> ParamsToSend, List<double> Outputs)
@@ -338,24 +349,6 @@ namespace SharpGenetics.Predictor
             }
 
             base.AddInputOutputToData(ParamsToSend, Outputs);
-        }
-
-        public override void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
-        {
-            lock (NetworkLock)
-            {
-                foreach (var Indiv in Population)
-                {
-                    if (!Indiv.Predicted && Indiv.Fitness >= 0)
-                    {
-                        AddInputOutputToData(Indiv.Vector, Indiv.ObjectivesFitness);
-                    }
-                }
-
-                AssessPopulation(Population, Generation, LowerPredThreshold, UpperPredThreshold);
-
-                TrainNetwork(BaseScoreError);
-            }
         }
     }
 }

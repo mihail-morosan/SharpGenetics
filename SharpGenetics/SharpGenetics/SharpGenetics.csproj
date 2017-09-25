@@ -73,9 +73,6 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="Troschuetz.Random">
-      <HintPath>..\packages\Troschuetz.Random.3.2.0\lib\net40-client\Troschuetz.Random.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseClasses\DefaultDoubleFitnessComparer.cs" />
@@ -90,9 +87,12 @@
     <Compile Include="Predictor\DecisionTreeC45Predictor.cs" />
     <Compile Include="Predictor\InputOutputPair.cs" />
     <Compile Include="Predictor\KNNPredictor.cs" />
+    <Compile Include="Predictor\MultilabelSVMPredictor.cs" />
+    <Compile Include="Predictor\SVMPredictor.cs" />
     <Compile Include="Predictor\NeuralNetworkOneOutputPredictor.cs" />
     <Compile Include="Predictor\NeuralNetworkPredictor.cs" />
     <Compile Include="Predictor\Predictor.cs" />
+    <Compile Include="Predictor\SOMPredictor.cs" />
     <Compile Include="Predictor\TrainingSet.cs" />
     <Compile Include="Predictor\WeightedTrainingSet.cs" />
     <Compile Include="SelectionAlgorithms\SelectionAlgorithm.cs" />

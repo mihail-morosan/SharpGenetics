@@ -26,7 +26,7 @@ namespace SharpGenetics.BaseClasses
     [AddINotifyPropertyChangedInterface]
     [DataContractAttribute]
     [KnownType("GetKnownType")]
-    public class GPRunManager<T, InputT, OutputT> where T : PopulationMember
+    public class GPRunManager<T> where T : PopulationMember
     {
         [DataMember]
         public RunParameters Parameters;
@@ -41,10 +41,7 @@ namespace SharpGenetics.BaseClasses
         public int RandomSeed = -1;
 
         [DataMember]
-        private List<GenericTest<InputT, OutputT>> Tests = null;
-
-        [DataMember]
-        public ObservableCollection<PopulationManager<T, InputT, OutputT>> Populations { get; set; }
+        public ObservableCollection<PopulationManager<T>> Populations { get; set; }
 
         [DataMember]
         private SelectionAlgorithm SelectionAlgorithm;
@@ -69,7 +66,7 @@ namespace SharpGenetics.BaseClasses
             Type[] openGenericTypes = {
                 typeof(SelectionAlgorithm)
                 ,typeof(FitnessComparer)
-                ,typeof(ResultPredictor<InputT,OutputT>)
+                ,typeof(ResultPredictor)
             };
             var res = new List<Type>();
 
@@ -104,19 +101,18 @@ namespace SharpGenetics.BaseClasses
         /// </summary>
         /// <param name="Filename">File to load parameters from</param>
         /// <param name="Tests">Tests to be used for calculating fitness of population members</param>
-        public GPRunManager(string Filename, List<GenericTest<InputT, OutputT>> Tests, int RandomSeed = -1) : this(LoadParamsFromFile(Filename), Tests, RandomSeed)
+        public GPRunManager(string Filename, int RandomSeed = -1) : this(LoadParamsFromFile(Filename), RandomSeed)
         {
         }
 
         [JsonConstructor]
-        public GPRunManager(RunParameters Parameters, List<GenericTest<InputT, OutputT>> Tests, int RandomSeed = -1)
+        public GPRunManager(RunParameters Parameters, int RandomSeed = -1)
         {
             this.CurrentGen = 0;
-            this.Populations = new ObservableCollection<PopulationManager<T, InputT, OutputT>>();
+            this.Populations = new ObservableCollection<PopulationManager<T>>();
             this.Parameters = Parameters;
             this.RandomSeed = RandomSeed;
             mainRandom = new CRandom(RandomSeed != -1 ? RandomSeed : Parameters.GetParameter<int>("Par_Seed", 1));
-            SetTests(Tests);
 
             var SelAlg = Parameters.GetParameter<string>("string_SelectionAlgorithm", "SharpGenetics.SelectionAlgorithms.TournamentSelection,SharpGenetics");
             /*if(SelAlg.Length < 1)
@@ -148,10 +144,9 @@ namespace SharpGenetics.BaseClasses
                 //RunParameters InstanceParams = Parameters.Clone();
                 //InstanceParams.AddToParameters("Instance", i + 1);
                 
-                Populations.Add(new PopulationManager<T, InputT, OutputT>(this, mainRandom.Next(), false, false));
+                Populations.Add(new PopulationManager<T>(this, mainRandom.Next(), false, false));
 
                 Populations[i].Instance = i + 1;
-                Populations[i].SetTests(Tests);
                 //Populations[i].GenerateRandomMembers();
                 //Populations[i].FinalizeGeneration();
                 Populations[i].SelectionAlgorithm = SelectionAlgorithm;
@@ -225,7 +220,7 @@ namespace SharpGenetics.BaseClasses
 
                 int i = 0;
                 //Create threads for evolving each population
-                foreach (PopulationManager<T, InputT, OutputT> pop in Populations)
+                foreach (var pop in Populations)
                 {
                     doneEvents[i] = new ManualResetEvent(false);
 
@@ -260,9 +255,9 @@ namespace SharpGenetics.BaseClasses
 
                 //Check if a population has achieved a good result
                 if ((RefreshGenCount > 0) && (CurrentGen % RefreshGenCount == 0))
-                    foreach (PopulationManager<T, InputT, OutputT> pop in Populations)
+                    foreach (var pop in Populations)
                     {
-                        if (pop.GetTopXMembers(1)[0].CalculateFitness(CurrentGen, Tests.ToArray()) < 0.000001)
+                        if (pop.GetTopXMembers(1)[0].CalculateFitness(CurrentGen) < 0.000001)
                         {
                             Completed = true;
                         }
@@ -283,15 +278,14 @@ namespace SharpGenetics.BaseClasses
 
                     int _rand = mainRandom.Next();
 
-                    PopulationManager<T, InputT, OutputT> NewPop = new PopulationManager<T, InputT, OutputT>(this, _rand, false);
-
-                    NewPop.SetTests(Tests);
+                    var NewPop = new PopulationManager<T>(this, _rand, false);
+                    
                     NewPop.SelectionAlgorithm = SelectionAlgorithm;
 
-                    PopulationManager<T, InputT, OutputT> worstPop = null;
+                    PopulationManager<T> worstPop = null;
                     double worstFitness = 0;
 
-                    foreach (PopulationManager<T, InputT, OutputT> pop in Populations)
+                    foreach (var pop in Populations)
                     {
 
                         Console.WriteLine(" REFRESH: Population elite calculation");
@@ -301,9 +295,9 @@ namespace SharpGenetics.BaseClasses
 
                         /*double tempFit = pop.GetAverageFitness();*/
 
-                        if (pop.GetMember(0).CalculateFitness<InputT, OutputT>(CurrentGen, Tests.ToArray()) >= worstFitness)
+                        if (pop.GetMember(0).CalculateFitness(CurrentGen) >= worstFitness)
                         {
-                            worstFitness = pop.GetMember(0).CalculateFitness<InputT, OutputT>(CurrentGen, Tests.ToArray());
+                            worstFitness = pop.GetMember(0).CalculateFitness(CurrentGen);
                             worstPop = pop;
                         }
                     }
@@ -348,7 +342,7 @@ namespace SharpGenetics.BaseClasses
         public List<T> GetBestMembers()
         {
             List<T> ret = new List<T>();
-            foreach (PopulationManager<T, InputT, OutputT> pop in Populations)
+            foreach (var pop in Populations)
             {
                 for (int y = 0; y < 1; y++)
                 {
@@ -377,20 +371,6 @@ namespace SharpGenetics.BaseClasses
             }
 
             return rp;
-        }
-
-        /// <summary>
-        /// Loads the tests from the file. Automatically called by the constructor.
-        /// </summary>
-        /// <param name="Tests"></param>
-        public void SetTests(List<GenericTest<InputT, OutputT>> Tests)
-        {
-            this.Tests = Tests;
-        }
-
-        public List<GenericTest<InputT, OutputT>> GetTests()
-        {
-            return Tests;
         }
 
         /// <summary>

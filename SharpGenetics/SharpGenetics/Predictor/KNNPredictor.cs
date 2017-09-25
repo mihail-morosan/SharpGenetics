@@ -13,7 +13,7 @@ using Accord.Math;
 namespace SharpGenetics.Predictor
 {
     [DataContract]
-    public class KNNPredictor : ResultPredictor<List<double>, List<double>>
+    public class KNNPredictor : ResultPredictor
     {
         KNearestNeighbors knn = null; 
 
@@ -80,12 +80,12 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public override void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
+        public override void AfterGeneration(List<PopulationMember> Population, int Generation)
         {
             LowerPredThreshold = CreateOutputFromClass(ThresholdClass, FirstQuart, Median, ThirdQuart, TotalClasses).Sum();
             UpperPredThreshold = double.PositiveInfinity;
 
-            base.AfterGeneration(Population, Generation, BaseScoreError);
+            base.AfterGeneration(Population, Generation);
 
             lock (NetworkLock)
             {
@@ -110,9 +110,9 @@ namespace SharpGenetics.Predictor
             knn.Learn(TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).ToArray());
             
             double Accuracy = 0;
-            var ValidationSet = TrainingData.Skip((int)(TrainingData.Count * 0.8));
+            var ValidationSet = TrainingData.Skip((int)(TrainingData.Count * 0.8)).ToList();
 
-            foreach (var In in ValidationSet)
+            /*foreach (var In in ValidationSet)
             {
                 try
                 {
@@ -126,7 +126,9 @@ namespace SharpGenetics.Predictor
                 }
             }
 
-            NetworkAccuracy = 1 - (Accuracy / ValidationSet.Count());
+            NetworkAccuracy = 1 - (Accuracy / ValidationSet.Count());*/
+
+            NetworkAccuracy = CalculateValidationClassifierAccuracy(ValidationSet, knn, FirstQuart, Median, ThirdQuart, TotalClasses);
 
             if (NetworkAccuracy >= MinimumAccuracy)
             {

@@ -1,4 +1,4 @@
-﻿using SharpGenetics.BaseClasses;
+﻿/*using SharpGenetics.BaseClasses;
 using SharpGenetics.Logging;
 using System;
 using System.Collections.Generic;
@@ -262,3 +262,4 @@ namespace SharpGenetics.FunctionRegression
         }
     }
 }
+*/

@@ -21,7 +21,7 @@ namespace SharpGenetics.SelectionAlgorithms
             this.TournamentSize = Parameters.GetParameter("Par_TournamentSize", 6);
         }
 
-        public override T Select<T, InputT, OutputT>(PopulationManager<T, InputT, OutputT> Manager, List<T> Population)
+        public override T Select<T>(PopulationManager<T> Manager, List<T> Population)
         {
             if (TournamentSize < 1 || Population.Count < 1)
                 return default(T);
@@ -34,7 +34,7 @@ namespace SharpGenetics.SelectionAlgorithms
             for (int i = 1; i < TournamentSize; i++)
             {
                 //double Fit = Tournament[i].CalculateFitness(Manager.GenerationsRun, Manager.GetTests().ToArray());
-                if (Tournament[i].CalculateFitness(Manager.GenerationsRun, Manager.GetTests().ToArray()) < BestMember.CalculateFitness(Manager.GenerationsRun, Manager.GetTests().ToArray()))
+                if (Tournament[i].CalculateFitness(Manager.GenerationsRun) < BestMember.CalculateFitness(Manager.GenerationsRun))
                 {
                     BestMember = Tournament[i];
                 }

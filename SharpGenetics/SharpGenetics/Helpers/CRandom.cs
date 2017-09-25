@@ -12,20 +12,16 @@ namespace SharpGenetics.Logging
     public class CRandom
     {
         [DataMember]
-        //Troschuetz.Random.Generators.MT19937Generator rand;
         Random rand;
         [DataMember]
         bool Log;
         [DataMember]
         int Seed;
-        [DataMember]
-        public int RunningTotal = 0;
 
         public CRandom(int Seed, bool Log = false)
         {
             this.Seed = Seed;
-
-            //rand = new Troschuetz.Random.Generators.MT19937Generator(Seed);
+            
             rand = new Random(Seed);
 
             this.Log = Log;
@@ -45,8 +41,6 @@ namespace SharpGenetics.Logging
             if(Log)
                 Logger.Log(_rand);
 
-            RunningTotal += _rand;
-
             return _rand;
         }
 
@@ -61,8 +55,6 @@ namespace SharpGenetics.Logging
             if(Log)
                 Logger.Log(_rand + " " + MaxValue);
 
-            RunningTotal += _rand;
-
             return _rand;
         }
 
@@ -73,7 +65,6 @@ namespace SharpGenetics.Logging
             {
                 _rand = rand.Next(MinValue, MaxValue);
             }
-            RunningTotal += _rand;
             return _rand;
         }
 
@@ -86,7 +77,6 @@ namespace SharpGenetics.Logging
             }
             _rand *= MaxValue - MinValue;
             _rand += MinValue;
-            //RunningTotal += _rand;
             return _rand;
         }
     }

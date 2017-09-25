@@ -8,6 +8,6 @@ namespace SharpGenetics.SelectionAlgorithms
     [DataContract]
     public abstract class SelectionAlgorithm
     {
-        public abstract T Select<T, InputT, OutputT>(PopulationManager<T, InputT, OutputT> Manager, List<T> Population) where T : PopulationMember;
+        public abstract T Select<T>(PopulationManager<T> Manager, List<T> Population) where T : PopulationMember;
     }
 }

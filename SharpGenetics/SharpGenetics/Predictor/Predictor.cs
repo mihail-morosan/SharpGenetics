@@ -1,4 +1,6 @@
-﻿using SharpGenetics.BaseClasses;
+﻿using Accord.MachineLearning;
+using Accord.Math.Optimization.Losses;
+using SharpGenetics.BaseClasses;
 using SharpGenetics.Helpers;
 using System;
 using System.Collections.Generic;
@@ -11,23 +13,25 @@ using System.Threading.Tasks;
 namespace SharpGenetics.Predictor
 {
     [DataContract]
-    public abstract class ResultPredictor<Input, Output>
+    public abstract class ResultPredictor
     {
-        public abstract Output Predict(Input Input);
+        public abstract List<double> Predict(List<double> Input);
 
-        public virtual void AfterGeneration(List<PopulationMember> Population, int Generation, double BaseScoreError)
+        public virtual void AfterGeneration(List<PopulationMember> Population, int Generation)
         {
             lock (NetworkLock)
             {
                 foreach (var Indiv in Population)
                 {
-                    if (!Indiv.Predicted && Indiv.Fitness >= 0)
+                    if (!Indiv.Predicted && Indiv.Fitness >= 0 && Indiv.CreatedAtGeneration == Generation)
                     {
                         AddInputOutputToData(Indiv.Vector, Indiv.ObjectivesFitness);
                     }
                 }
 
                 AssessPopulation(Population, Generation, LowerPredThreshold, UpperPredThreshold);
+
+                PredictionAccuracyOverTime.Add(NetworkAccuracy);
             }
         }
 
@@ -74,6 +78,9 @@ namespace SharpGenetics.Predictor
 
         [DataMember]
         public WeightedTrainingSet NetworkTrainingData;
+
+        [DataMember]
+        public List<double> PredictionAccuracyOverTime = new List<double>();
 
         [DataMember]
         public int RandomSeed = 0;
@@ -194,6 +201,39 @@ namespace SharpGenetics.Predictor
             }
 
             return new List<double>() { ThirdQuart + 1 };
+        }
+
+        public double CalculateValidationAccuracy(List<InputOutputPair> ValidationSet, double BaseScoreError, out double PredictorError)
+        {
+            double[][] ValidationPredictions = ValidationSet.Select(e => Predict(e.Inputs).ToArray()).ToArray();
+            double[][] ValidationTruth = ValidationSet.Select(e => e.Outputs.ToArray()).ToArray();
+
+            //double errorHamming = new HammingLoss(ValidationTruth).Loss(ValidationPredictions);
+            double errorSquare = Math.Sqrt(new SquareLoss(ValidationTruth).Loss(ValidationPredictions));
+            double accuracySquare = 1 - (errorSquare / BaseScoreError);
+
+            PredictorError = errorSquare;
+
+            return accuracySquare;
+        }
+
+        public double CalculateValidationClassifierAccuracy(List<InputOutputPair> ValidationSet, dynamic Classifier, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
+        {
+            try
+            {
+                int[] ValidationPredictionsInt = Classifier.Decide(ValidationSet.Select(e => e.Inputs.ToArray()).ToArray());
+                double[] ValidationPredictions = ValidationPredictionsInt.Select(e => (double)e).ToArray();
+                double[] ValidationTruth = ValidationSet.Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).Select(e => (double)e).ToArray();
+
+                double errorSquare = new SquareLoss(ValidationTruth).Loss(ValidationPredictions);
+                double accuracySquare = 1 - (Math.Sqrt(errorSquare) / TotalClasses);
+
+
+                return accuracySquare;
+            } catch(Exception e)
+            {
+                return -1;
+            }
         }
     }
 

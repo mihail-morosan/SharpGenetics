@@ -17,10 +17,10 @@ namespace SharpGenetics.BaseClasses
     [DataContractAttribute(IsReference = true)]
     [JsonObject(IsReference = true)]
     //[KnownType("GetKnownType")]
-    public class PopulationManager<T, InputT, OutputT> where T : PopulationMember
+    public class PopulationManager<T> where T : PopulationMember
     {
         [DataMember]
-        public ResultPredictor<InputT, OutputT> Predictor;
+        public ResultPredictor Predictor;
         [DataMember]
         public CRandom rand;
         [DataMember]
@@ -42,9 +42,6 @@ namespace SharpGenetics.BaseClasses
         public RunMetrics RunMetrics { get; set; }
 
         [DataMember]
-        private List<GenericTest<InputT, OutputT>> _tests;
-
-        [DataMember]
         public SelectionAlgorithm SelectionAlgorithm;
 
         [DataMember]
@@ -52,7 +49,7 @@ namespace SharpGenetics.BaseClasses
 
         //[DataMember]
         //private RunParameters _parameters;
-        public GPRunManager<T, InputT, OutputT> Parent = null;
+        public GPRunManager<T> Parent = null;
 
         [DataMember]
         private FitnessComparer FitnessComparer = null;
@@ -83,12 +80,10 @@ namespace SharpGenetics.BaseClasses
         /// <param name="RandomSeed">Value of the random seed. Used to "predict" the run, given an initial completely random population.</param>
         /// <param name="AllowDuplicates">Whether to allow duplicates or not.</param>
         /// <param name="ForceRandomLog">DEPRECATED</param>
-        public PopulationManager(GPRunManager<T, InputT, OutputT> Parent, int RandomSeed = 0, bool AllowDuplicates = false, bool ForceRandomLog = false)
+        public PopulationManager(GPRunManager<T> Parent, int RandomSeed = 0, bool AllowDuplicates = false, bool ForceRandomLog = false)
         {
             _currentMembers = new List<T>();
             _nextGeneration = new List<T>();
-
-            _tests = new List<GenericTest<InputT, OutputT>>();
 
             RunMetrics = new RunMetrics();
 
@@ -98,7 +93,7 @@ namespace SharpGenetics.BaseClasses
             ReloadParameters(Parent);
         }
 
-        public void ReloadParameters(GPRunManager<T, InputT, OutputT> Parent)
+        public void ReloadParameters(GPRunManager<T> Parent)
         {
             this.Parent = Parent;
             
@@ -123,7 +118,7 @@ namespace SharpGenetics.BaseClasses
             {
                 string PredictorType = "SharpGenetics.Predictor." + Parent.Parameters.GetParameter("string_PredictorType", "") + ",SharpGenetics";
 
-                var Pred = (ResultPredictor<InputT, OutputT>)Activator.CreateInstance(Type.GetType(PredictorType), new object[] { Parent.Parameters, PredictorRandSeed });
+                var Pred = (ResultPredictor)Activator.CreateInstance(Type.GetType(PredictorType), new object[] { Parent.Parameters, PredictorRandSeed });
 
                 Predictor = Pred;
             }
@@ -137,22 +132,6 @@ namespace SharpGenetics.BaseClasses
         public T GetMember(int index)
         {
             return _currentMembers.ElementAt(index);
-        }
-
-        public List<GenericTest<InputT, OutputT>> GetTests()
-        {
-            return _tests;
-        }
-
-        /// <summary>
-        /// Sets the tests that will be used for fitness evaluation.
-        /// </summary>
-        /// <param name="newList">List of Generic Tests</param>
-        public void SetTests(List<GenericTest<InputT, OutputT>> newList)
-        {
-            _tests = newList;
-
-            int i = 0;
         }
 
         /// <summary>
@@ -181,7 +160,7 @@ namespace SharpGenetics.BaseClasses
             {
                 foreach (T member in _currentMembers)
                 {
-                    ret += member.CalculateFitness(this.GenerationsRun, _tests.ToArray());
+                    ret += member.CalculateFitness(this.GenerationsRun);
                 }
                 ret = ret / _currentMembers.Count;
             } else
@@ -285,7 +264,7 @@ namespace SharpGenetics.BaseClasses
                 {
                     try
                     {
-                        _currentMembers[(int)threadContext].CalculateFitness(this.GenerationsRun, _tests.ToArray());
+                        _currentMembers[(int)threadContext].CalculateFitness(this.GenerationsRun);
                     }
                     catch (Exception e)
                     {
@@ -408,7 +387,7 @@ namespace SharpGenetics.BaseClasses
             {
                 List<PopulationMember> CMembers = new List<PopulationMember>(_currentMembers);
 
-                Predictor.AfterGeneration(CMembers, GenerationsRun, RunMetrics.AverageFitnesses.FirstOrDefault().Value);
+                Predictor.AfterGeneration(CMembers, GenerationsRun);
             }
         }
 

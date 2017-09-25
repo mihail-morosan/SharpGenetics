@@ -9,53 +9,11 @@ using System.Threading.Tasks;
 namespace SharpGenetics.BaseClasses
 {
     [DataContractAttribute]
-    public class GenericTest<InputT,OutputT>
-    {
-        [DataMember]
-        public Dictionary<String, InputT> Inputs { get; set; }
-        [DataMember]
-        public List<OutputT> Outputs { get; set; }
-
-        public GenericTest()
-        {
-            Inputs = new Dictionary<string, InputT>();
-            Outputs = new List<OutputT>();
-        }
-
-        public void AddInput(String key, InputT value)
-        {
-            Inputs.Add(key, value);
-        }
-
-        public void AddOutput(OutputT value)
-        {
-            Outputs.Add(value);
-        }
-
-        public override string ToString()
-        {
-            string res = "Test( ";
-            foreach(var input in Inputs.Keys)
-            {
-                res += input + "=" + Inputs[input] + " ";
-            }
-            res += ") = ( ";
-            foreach(var output in Outputs)
-            {
-                res += output;
-            }
-            res += " )";
-
-            return res;
-        }
-    }
-
-    [DataContractAttribute]
     public abstract class PopulationMember
     {
-        public abstract void ReloadParameters<T,I,O>(PopulationManager<T, I, O> Manager) where T:PopulationMember;
+        public abstract void ReloadParameters<T>(PopulationManager<T> Manager) where T:PopulationMember;
 
-        public abstract double CalculateFitness<T, Y>(int CurrentGeneration, params GenericTest<T, Y>[] values);
+        public abstract double CalculateFitness(int CurrentGeneration);
 
         public abstract double GetFitness();
 
@@ -122,7 +80,7 @@ namespace SharpGenetics.BaseClasses
         [DataMember]
         public bool Predicted = false;
         
-        public abstract PopulationManager<T, I, O> GetParentManager<T,I,O>() where T: PopulationMember;
+        public abstract PopulationManager<T> GetParentManager<T>() where T: PopulationMember;
 
         public CRandom GetRandomGenerator()
         {
