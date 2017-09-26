@@ -135,7 +135,7 @@ namespace SharpGenetics.Predictor
                     else
                     {
                         //Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
-                        Network = new ActivationNetwork(new BipolarSigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
+                        Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
                         //Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, 1);
                         NguyenWidrow initializer = new NguyenWidrow(Network);
                         //GaussianWeights initializer = new GaussianWeights(Network);
@@ -169,86 +169,26 @@ namespace SharpGenetics.Predictor
                 return;
             }
 
-            double LearningRate = 0.1;
-            double Momentum = 0.5;
-
             var teacher = new ParallelResilientBackpropagationLearning(Network)
             {
-                //LearningRate = LearningRate,
-                //Momentum = Momentum
             };
-
-            /*var teacher = new DeepNeuralNetworkLearning(Network as DeepBeliefNetwork)
-            {
-                Algorithm = (ann, i) => new ParallelResilientBackpropagationLearning(ann),
-                LayerIndex = 0,
-            };*/
-
-            /*var teacher = new LevenbergMarquardtLearning(Network);
-            teacher.LearningRate = LearningRate;*/
-
-            //NetworkTrainingData.Sort((a, b) => a.Outputs[0].CompareTo(b.Outputs[0]));
-
-            //double error = 0;
 
             var TrainingSet = new List<InputOutputPair>();
             var ValidationSet = new List<InputOutputPair>();
 
             var TrainingData = NetworkTrainingData.GetAllValues();
-            //TrainingData.Shuffle();
 
             TrainingSet.AddRange(TrainingData.Take(NetworkTrainingData.Count() * 4 / 5));
             ValidationSet.AddRange(TrainingData.Skip(NetworkTrainingData.Count() * 4 / 5));
 
+            double[][] inputs = TrainingSet.Select(a => InputOutputPair.Normalise(a.Inputs, MinVal, MaxVal).ToArray()).ToArray();
+            double[][] outputs = TrainingSet.Select(a => InputOutputPair.Normalise(a.Outputs, MinOutputVal, MaxOutputVal).ToArray()).ToArray();
+
             for (int i = 0; i < TrainingEpochsPerGeneration; i++)
             {
-                //foreach (var In in TrainingSet)
-                {
-                    //error += teacher.Run(In.Inputs.ToArray(), In.Outputs.ToArray());
-                    teacher.RunEpoch(
-                        TrainingSet.Select(a => InputOutputPair.Normalise(a.Inputs, MinVal, MaxVal).ToArray()).ToArray(),
-                        TrainingSet.Select(a => InputOutputPair.Normalise(a.Outputs, MinOutputVal, MaxOutputVal).ToArray()).ToArray()
-                        );
-                }
+                teacher.RunEpoch(inputs, outputs);
             }
 
-            //Network.UpdateVisibleWeights();
-
-            //List<double> Diff = new List<double>(new double[OutputLayer]);
-
-            /*List<double> DiffTemp = new List<double>(new double[OutputLayer]);
-
-            foreach (var In in ValidationSet)
-            {
-                //var origOutputVal = InputOutputPair.Normalise(In.Outputs, MinOutputVal, MaxOutputVal);
-                //var outputVal = Network.Compute(InputOutputPair.Normalise(In.Inputs, MinVal, MaxVal).ToArray());
-
-                var outputValTemp = Predict(In.Inputs);
-
-                for (int i = 0; i < In.Outputs.Count; i++)
-                {
-                    //Diff[i] += Math.Abs(origOutputVal[i] - outputVal[i]);
-
-                    DiffTemp[i] += Math.Abs(In.Outputs[i] - outputValTemp[i]);
-                }
-            }
-
-            double TempNetworkAccuracy = 0;
-            double TempSumAcc = DiffTemp.Select(d => d / ValidationSet.Count).Sum();
-            TempNetworkAccuracy = 1 - (TempSumAcc / BaseScoreError);
-
-            PredictorFitnessError = TempSumAcc;*/
-
-            /*double[][] ValidationPredictions = ValidationSet.Select(e => Predict(e.Inputs).ToArray()).ToArray();
-            double[][] ValidationTruth = ValidationSet.Select(e => e.Outputs.ToArray()).ToArray();
-
-            //double errorHamming = new HammingLoss(ValidationTruth).Loss(ValidationPredictions);
-            double errorSquare = Math.Sqrt(new SquareLoss(ValidationTruth).Loss(ValidationPredictions));
-            double accuracySquare = 1 - (errorSquare / BaseScoreError);
-
-            PredictorFitnessError = errorSquare;*/
-
-            //NetworkAccuracy = TempNetworkAccuracy;
             double PFE;
             NetworkAccuracy = CalculateValidationAccuracy(ValidationSet, BaseScoreError, out PFE);
             PredictorFitnessError = PFE;
@@ -260,9 +200,6 @@ namespace SharpGenetics.Predictor
 
             if (NetworkAccuracy >= MinimumAccuracy)
             {
-                //double LowerPredThreshold = 0;
-                //double UpperPredThreshold = double.PositiveInfinity;
-
                 switch (LowerBoundForPredictionThreshold)
                 {
                     case 1:
@@ -331,10 +268,6 @@ namespace SharpGenetics.Predictor
 
         public bool PassesThresholdCheck(double Prediction, double LowerPredThreshold, double UpperPredThreshold)
         {
-            //double NewPrediction = Prediction;
-            //double NewPrediction = NetworkAccuracy * Prediction;
-
-            //return NewPrediction > LowerPredThreshold && NewPrediction < UpperPredThreshold;
             return (Prediction - PredictorFitnessError) > LowerPredThreshold && (Prediction + PredictorFitnessError) < UpperPredThreshold;
         }
 
