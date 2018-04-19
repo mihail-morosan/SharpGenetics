@@ -45,6 +45,9 @@ namespace SharpGenetics.BaseClasses
         [DataMember]
         public AsyncObservableCollection<MetricPoint> TotalFitnessCalculations { get; set; }
 
+        [DataMember]
+        public AsyncObservableCollection<double> PreviousGenerationFitnesses { get; set; }
+
         private static object FitLock = new object();
 
         public RunMetrics()
@@ -56,6 +59,8 @@ namespace SharpGenetics.BaseClasses
             MedianOfFitnesses = new AsyncObservableCollection<MetricPoint>();
             FitnessCalculations = new AsyncObservableCollection<MetricPoint>();
             TotalFitnessCalculations = new AsyncObservableCollection<MetricPoint>();
+
+            PreviousGenerationFitnesses = new AsyncObservableCollection<double>();
         }
 
         /*public void AddFitnessCalculation(int Generation)
@@ -92,6 +97,12 @@ namespace SharpGenetics.BaseClasses
             }
 
             TotalFitnessCalculations.Add(new MetricPoint(Gen, Evaluations + PrevEval));
+
+            PreviousGenerationFitnesses.Clear();
+            foreach(var I in Sorted)
+            {
+                PreviousGenerationFitnesses.Add(I);
+            }
         }
 
         public static List<double> GetSortedList(List<double> Values)

@@ -9,6 +9,7 @@ using Accord.MachineLearning;
 using Accord.Statistics;
 using SharpGenetics.Helpers;
 using Accord.Math;
+using Accord.Math.Distances;
 
 namespace SharpGenetics.Predictor
 {
@@ -33,12 +34,12 @@ namespace SharpGenetics.Predictor
             }
         }
 
+        /*[DataMember]
+        double Median = 0;*/
         [DataMember]
-        double Median = 0;
+        double MinVal = 0;
         [DataMember]
-        double FirstQuart = 0;
-        [DataMember]
-        double ThirdQuart = 0;
+        double MaxVal = 0;
 
         [DataMember]
         [ImportantParameter("extra_Predictor_KNN_ThresholdClass", "Threshold Class For Accepting Predictions", 0, 20, 2)]
@@ -74,7 +75,7 @@ namespace SharpGenetics.Predictor
                         //knn = Accord.IO.Serializer.Load<KNearestNeighbors>(NetworkSerializeValue);
                     } else
                     {
-                        knn = new KNearestNeighbors(KValue);
+                        //knn = new KNearestNeighbors<double[]>(k: KValue, distance: new SquareEuclidean());
                     }
                 }
             }
@@ -82,18 +83,20 @@ namespace SharpGenetics.Predictor
 
         public override void AfterGeneration(List<PopulationMember> Population, int Generation)
         {
-            LowerPredThreshold = CreateOutputFromClass(ThresholdClass, FirstQuart, Median, ThirdQuart, TotalClasses).Sum();
+            var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
+
+            LowerPredThreshold = CreateOutputFromClass(ThresholdClass, AllFitnesses.Min(), AllFitnesses.Max(), TotalClasses).Sum();
             UpperPredThreshold = double.PositiveInfinity;
 
             base.AfterGeneration(Population, Generation);
 
             lock (NetworkLock)
             {
-                var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
-
-                FirstQuart = 0;
-                ThirdQuart = 0;
-                Median = AllFitnesses.Quartiles(out FirstQuart, out ThirdQuart, false);
+                MinVal = AllFitnesses.Min();
+                MaxVal = AllFitnesses.Max();
+                //FirstQuart = 0;
+                //ThirdQuart = 0;
+                //Median = AllFitnesses.Quartiles(out FirstQuart, out ThirdQuart, false);
             }
         }
 
@@ -105,12 +108,19 @@ namespace SharpGenetics.Predictor
             {
                 return;
             }
-
-            knn = new KNearestNeighbors(KValue);
-            knn.Learn(TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).ToArray());
             
-            double Accuracy = 0;
+            knn = new KNearestNeighbors(KValue);
+            
+            knn.Learn(TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, MinVal, MaxVal, TotalClasses)).ToArray());
+
+            //knn.NumberOfInputs = 80;
+            //knn.NumberOfOutputs = TotalClasses;
+            knn.NumberOfClasses = TotalClasses;
+
+            //double Accuracy = 0;
             var ValidationSet = TrainingData.Skip((int)(TrainingData.Count * 0.8)).ToList();
+
+            //knn.Decide(TrainingData.First().Inputs.ToArray());
 
             /*foreach (var In in ValidationSet)
             {
@@ -128,7 +138,7 @@ namespace SharpGenetics.Predictor
 
             NetworkAccuracy = 1 - (Accuracy / ValidationSet.Count());*/
 
-            NetworkAccuracy = CalculateValidationClassifierAccuracy(ValidationSet, knn, FirstQuart, Median, ThirdQuart, TotalClasses);
+            NetworkAccuracy = CalculateValidationClassifierAccuracy(ValidationSet, knn, RunMetrics.PreviousGenerationFitnesses.Min(), RunMetrics.PreviousGenerationFitnesses.Max(), TotalClasses);
 
             if (NetworkAccuracy >= MinimumAccuracy)
             {
@@ -163,7 +173,7 @@ namespace SharpGenetics.Predictor
                 Result = knn.Decide(Input.ToArray());
             }
             
-            return CreateOutputFromClass(Result, FirstQuart, Median, ThirdQuart, TotalClasses);
+            return CreateOutputFromClass(Result, MinVal, MaxVal, TotalClasses);
         }
     }
 }

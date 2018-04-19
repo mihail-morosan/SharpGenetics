@@ -161,8 +161,8 @@ namespace SharpGenetics.Predictor
                 }
             }
         }
-        
-        public static int ClassifyOutputs(List<double> Output, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
+
+        /*public static int ClassifyOutputs(List<double> Output, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
         {
             double Sum = Output.Sum();
             if (Sum < FirstQuart)
@@ -181,9 +181,36 @@ namespace SharpGenetics.Predictor
             }
             else
                 return TotalClasses - 1;
+        }*/
+
+
+        public static int ClassifyOutputs(List<double> Output, double Min, double Max, int TotalClasses)
+        {
+            double Sum = Output.Sum();
+            if (Sum < Min)
+                return 0;
+            if (Sum >= Max)
+                return TotalClasses-1;
+            int Result = (int)(1 + ((Sum - Min) / (Max - Min)) * (TotalClasses - 1));
+            return Result;
         }
 
-        public static List<double> CreateOutputFromClass(int Result, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
+        public static List<double> CreateOutputFromClass(int Result, double Min, double Max, int TotalClasses)
+        {
+            if(Result == 0)
+            {
+                return new List<double>() { Min - 1 };
+            }
+
+            if(Result == TotalClasses - 1)
+            {
+                return new List<double>() { Max + 1 };
+            }
+
+            return new List<double>() { Min + (Max - Min) * ((double)Result - 1 / (double)TotalClasses - 1) };
+        }
+
+        /*public static List<double> CreateOutputFromClass(int Result, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
         {
             if (Result == 0)
                 return new List<double>() { FirstQuart - 1 };
@@ -201,7 +228,7 @@ namespace SharpGenetics.Predictor
             }
 
             return new List<double>() { ThirdQuart + 1 };
-        }
+        }*/
 
         public double CalculateValidationAccuracy(List<InputOutputPair> ValidationSet, double BaseScoreError, out double PredictorError)
         {
@@ -217,13 +244,21 @@ namespace SharpGenetics.Predictor
             return accuracySquare;
         }
 
-        public double CalculateValidationClassifierAccuracy(List<InputOutputPair> ValidationSet, dynamic Classifier, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
+        public double CalculateValidationClassifierAccuracy(List<InputOutputPair> ValidationSet, dynamic Classifier, double Min, double Max, int TotalClasses)
+        //public double CalculateValidationClassifierAccuracy(List<InputOutputPair> ValidationSet, dynamic Classifier, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
         {
             try
             {
-                int[] ValidationPredictionsInt = Classifier.Decide(ValidationSet.Select(e => e.Inputs.ToArray()).ToArray());
+                var InArray = ValidationSet.Select(e => e.Inputs.ToArray()).ToArray();
+
+                foreach(var In in InArray)
+                {
+                    Classifier.Compute(In);
+                }
+
+                int[] ValidationPredictionsInt = Classifier.Decide(InArray);
                 double[] ValidationPredictions = ValidationPredictionsInt.Select(e => (double)e).ToArray();
-                double[] ValidationTruth = ValidationSet.Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).Select(e => (double)e).ToArray();
+                double[] ValidationTruth = ValidationSet.Select(e => ClassifyOutputs(e.Outputs, Min, Max, TotalClasses)).Select(e => (double)e).ToArray();
 
                 double errorSquare = new SquareLoss(ValidationTruth).Loss(ValidationPredictions);
                 double accuracySquare = 1 - (Math.Sqrt(errorSquare) / TotalClasses);

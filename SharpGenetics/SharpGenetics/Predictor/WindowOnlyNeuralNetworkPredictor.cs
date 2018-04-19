@@ -1,11 +1,8 @@
-﻿using Accord.Math;
-using Accord.Math.Optimization.Losses;
-using Accord.Neuro;
+﻿using Accord.Neuro;
 using Accord.Neuro.Learning;
-using Accord.Neuro.Networks;
 using SharpGenetics.BaseClasses;
 using SharpGenetics.Helpers;
-using SharpGenetics.Logging;
+using SharpGenetics.Predictor.BasePredictors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +13,7 @@ using System.Threading.Tasks;
 namespace SharpGenetics.Predictor
 {
     [DataContract]
-    public class NeuralNetworkPredictor : ResultPredictor
+    class WindowOnlyNeuralNetworkPredictor : ResultPredictor
     {
         [DataMember]
         public int InputLayer = 1;
@@ -32,16 +29,12 @@ namespace SharpGenetics.Predictor
         public int TrainingEpochsPerGeneration { get; set; }
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_LowerThreshold", "Lower Prediction Threshold (in percentile 0 to 1)", 0, 1, 0.5)]
-        public double LowerBoundForPredictionThreshold { get; set; }
+        [ImportantParameter("extra_Predictor_LowerThreshold", "Lower Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 0)]
+        public int LowerBoundForPredictionThreshold { get; set; }
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_UpperThreshold", "Upper Prediction Threshold (in percentile 0 to 1)", 0, 1, 0.5)]
-        public double UpperBoundForPredictionThreshold { get; set; }
-
-        [DataMember]
-        [ImportantParameter("extra_Predictor_NN_ChanceToEvaluateAnyway", "Chance inverse to network accuracy to evaluate predicted individual anyway", 0, 1, 1)]
-        public int ChanceToEvaluateAnyway { get; set; }
+        [ImportantParameter("extra_Predictor_UpperThreshold", "Upper Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 0)]
+        public int UpperBoundForPredictionThreshold { get; set; }
 
         [DataMember]
         public List<double> MaxVal = new List<double>();
@@ -65,7 +58,7 @@ namespace SharpGenetics.Predictor
         {
             get
             {
-                return Accord.IO.Serializer.Save(Network);
+                return Network != null ? Accord.IO.Serializer.Save(Network) : null;
             }
             set
             {
@@ -73,9 +66,9 @@ namespace SharpGenetics.Predictor
             }
         }
 
-        public NeuralNetworkPredictor(RunParameters Parameters, int RandomSeed)
+        public WindowOnlyNeuralNetworkPredictor(RunParameters Parameters, int RandomSeed)
         {
-            PredictorHelper.ApplyPropertiesToPredictor<NeuralNetworkPredictor>(this, Parameters);
+            PredictorHelper.ApplyPropertiesToPredictor<WindowOnlyNeuralNetworkPredictor>(this, Parameters);
 
             MinVal.Clear();
             MaxVal.Clear();
@@ -134,12 +127,7 @@ namespace SharpGenetics.Predictor
                     }
                     else
                     {
-                        //Network = new DeepBeliefNetwork(InputLayer, HiddenLayer, OutputLayer);
-                        Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
-                        //Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, 1);
-                        NguyenWidrow initializer = new NguyenWidrow(Network);
-                        //GaussianWeights initializer = new GaussianWeights(Network);
-                        initializer.Randomize();
+                        
                     }
                 }
             }
@@ -168,6 +156,10 @@ namespace SharpGenetics.Predictor
                 NetworkAccuracy = -1;
                 return;
             }
+
+            Network = new ActivationNetwork(new SigmoidFunction(2), InputLayer, HiddenLayer, OutputLayer);
+            NguyenWidrow initializer = new NguyenWidrow(Network);
+            initializer.Randomize();
 
             var teacher = new ParallelResilientBackpropagationLearning(Network)
             {
@@ -200,11 +192,7 @@ namespace SharpGenetics.Predictor
 
             if (NetworkAccuracy >= MinimumAccuracy)
             {
-                if (LowerBoundForPredictionThreshold == -1)
-                    LowerPredThreshold = double.PositiveInfinity;
-                else 
-                    LowerPredThreshold = Percentile(RunMetrics.PreviousGenerationFitnesses, LowerBoundForPredictionThreshold);
-                /*switch (LowerBoundForPredictionThreshold)
+                switch (LowerBoundForPredictionThreshold)
                 {
                     case 1:
                         LowerPredThreshold = RunMetrics.FirstQuartileOfFitnesses.LastOrDefault().Value;
@@ -220,12 +208,9 @@ namespace SharpGenetics.Predictor
                         break;
                     default:
                         break;
-                }*/
-                if (UpperBoundForPredictionThreshold == -1)
-                    UpperPredThreshold = double.PositiveInfinity;
-                else
-                    UpperPredThreshold = Percentile(RunMetrics.PreviousGenerationFitnesses, UpperBoundForPredictionThreshold);
-                /*switch (UpperBoundForPredictionThreshold)
+                }
+
+                switch (UpperBoundForPredictionThreshold)
                 {
                     case 1:
                         UpperPredThreshold = RunMetrics.FirstQuartileOfFitnesses.LastOrDefault().Value;
@@ -241,9 +226,8 @@ namespace SharpGenetics.Predictor
                         break;
                     default:
                         break;
-                }*/
+                }
 
-                var Rand = new CRandom(RandomSeed + Generation);
 
                 int PredictionsThisGen = 0;
 
@@ -251,18 +235,13 @@ namespace SharpGenetics.Predictor
                 {
                     var Result = Predict(Indiv.Vector);
                     var Sum = Result.Sum();
-                    if (Indiv.Fitness < 0 && PassesThresholdCheck(Sum, LowerPredThreshold, UpperPredThreshold)) //Sum > LowerPredThreshold && Sum < UpperPredThreshold)
+                    if (Indiv.Fitness < 0 && PassesThresholdCheck(Sum, LowerPredThreshold, UpperPredThreshold)) 
                     {
-                        var PredictVal = Rand.NextDouble(0, 1);
-                        var PredictChance = (ChanceToEvaluateAnyway == 1) ? (PredictVal < NetworkAccuracy) : true;
-                        if (PredictChance)
-                        {
-                            Indiv.ObjectivesFitness = new List<double>(Result);
-                            Indiv.Predicted = true;
-                            IncrementPredictionCount(Generation, true);
+                        Indiv.ObjectivesFitness = new List<double>(Result);
+                        Indiv.Predicted = true;
+                        IncrementPredictionCount(Generation, true);
 
-                            PredictionsThisGen++;
-                        }
+                        PredictionsThisGen++;
                     }
 
                     if (PredictionsThisGen >= MaxPredictionsPerGenRatio * Population.Count)
@@ -289,19 +268,6 @@ namespace SharpGenetics.Predictor
             }
 
             base.AddInputOutputToData(ParamsToSend, Outputs);
-        }
-
-        public static double Percentile(IEnumerable<double> seq, double percentile)
-        {
-            var elements = seq.ToArray();
-            Array.Sort(elements);
-            double realIndex = percentile * (elements.Length - 1);
-            int index = (int)realIndex;
-            double frac = realIndex - index;
-            if (index + 1 < elements.Length)
-                return elements[index] * (1 - frac) + elements[index + 1] * frac;
-            else
-                return elements[index];
         }
     }
 }

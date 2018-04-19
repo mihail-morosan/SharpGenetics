@@ -39,11 +39,9 @@ namespace SharpGenetics.Predictor
         }
 
         [DataMember]
-        double Median = 0;
+        double MinVal = 0;
         [DataMember]
-        double FirstQuart = 0;
-        [DataMember]
-        double ThirdQuart = 0;
+        double MaxVal = 0;
 
         [DataMember]
         [ImportantParameter("extra_Predictor_C45_ThresholdClass", "Threshold Class For Accepting Predictions", 0, 20, 2)]
@@ -80,18 +78,17 @@ namespace SharpGenetics.Predictor
 
         public override void AfterGeneration(List<PopulationMember> Population, int Generation)
         {
-            LowerPredThreshold = CreateOutputFromClass(ThresholdClass, FirstQuart, Median, ThirdQuart, TotalClasses).Sum();
+            var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
+
+            LowerPredThreshold = CreateOutputFromClass(ThresholdClass, AllFitnesses.Min(), AllFitnesses.Max(), TotalClasses).Sum();
             UpperPredThreshold = double.PositiveInfinity;
 
             base.AfterGeneration(Population, Generation);
 
             lock (NetworkLock)
             {
-                var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
-
-                FirstQuart = 0;
-                ThirdQuart = 0;
-                Median = AllFitnesses.Quartiles(out FirstQuart, out ThirdQuart, false);
+                MinVal = AllFitnesses.Min();
+                MaxVal = AllFitnesses.Max();
             }
         }
 
@@ -125,7 +122,7 @@ namespace SharpGenetics.Predictor
             }
 
             double[][] input = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray();
-            int[] output = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses)).ToArray();
+            int[] output = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, MinVal, MaxVal, TotalClasses)).ToArray();
 
             Tree = GenerateBestTree(input, output);
 
@@ -146,7 +143,7 @@ namespace SharpGenetics.Predictor
             }
 
             NetworkAccuracy = 1 - (Accuracy / ValidationSet.Count()); */
-            NetworkAccuracy = CalculateValidationClassifierAccuracy(ValidationSet, Tree, FirstQuart, Median, ThirdQuart, TotalClasses);
+            NetworkAccuracy = CalculateValidationClassifierAccuracy(ValidationSet, Tree, RunMetrics.PreviousGenerationFitnesses.Min(), RunMetrics.PreviousGenerationFitnesses.Max(), TotalClasses);
 
             if (NetworkAccuracy >= MinimumAccuracy)
             {
@@ -177,7 +174,7 @@ namespace SharpGenetics.Predictor
                 Result = Tree.Decide(Input.ToArray());
             }
 
-            return CreateOutputFromClass(Result, FirstQuart, Median, ThirdQuart, TotalClasses);
+            return CreateOutputFromClass(Result, MinVal, MaxVal, TotalClasses);
         }
     }
 }
