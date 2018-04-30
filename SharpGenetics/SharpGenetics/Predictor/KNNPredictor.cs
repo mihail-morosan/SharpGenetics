@@ -35,19 +35,19 @@ namespace SharpGenetics.Predictor
         }
 
         /*[DataMember]
-        double Median = 0;*/
+        double Median = 0;
         [DataMember]
         double MinVal = 0;
         [DataMember]
-        double MaxVal = 0;
+        double MaxVal = 0;*/
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_KNN_ThresholdClass", "Threshold Class For Accepting Predictions", 0, 20, 2)]
-        public int ThresholdClass { get; set; }
+        [ImportantParameter("extra_Predictor_KNN_ThresholdClass", "Threshold Class For Accepting Predictions", 0, 1, 0.5)]
+        public double ThresholdClass { get; set; }
 
-        [DataMember]
-        [ImportantParameter("extra_Predictor_KNN_TotalClasses", "Number of Output Classes", 0, 20, 4)]
-        public int TotalClasses { get; set; }
+        //[DataMember]
+        //[ImportantParameter("extra_Predictor_KNN_TotalClasses", "Number of Output Classes", 0, 20, 4)]
+        //public int TotalClasses { get; set; }
 
         [DataMember]
         [ImportantParameter("extra_Predictor_KNN_KValue", "Value of K", 2, 10, 3)]
@@ -85,15 +85,16 @@ namespace SharpGenetics.Predictor
         {
             var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
 
-            LowerPredThreshold = CreateOutputFromClass(ThresholdClass, AllFitnesses.Min(), AllFitnesses.Max(), TotalClasses).Sum();
+            //LowerPredThreshold = CreateOutputFromClass(ThresholdClass, AllFitnesses.Min(), AllFitnesses.Max(), TotalClasses).Sum();
+            LowerPredThreshold = Percentile(AllFitnesses, ThresholdClass);
             UpperPredThreshold = double.PositiveInfinity;
 
             base.AfterGeneration(Population, Generation);
 
             lock (NetworkLock)
             {
-                MinVal = AllFitnesses.Min();
-                MaxVal = AllFitnesses.Max();
+                //MinVal = AllFitnesses.Min();
+                //MaxVal = AllFitnesses.Max();
                 //FirstQuart = 0;
                 //ThirdQuart = 0;
                 //Median = AllFitnesses.Quartiles(out FirstQuart, out ThirdQuart, false);
@@ -108,14 +109,16 @@ namespace SharpGenetics.Predictor
             {
                 return;
             }
-            
+
+            var PrevPop = RunMetrics.PreviousGenerationFitnesses.Sorted().ToList();
+
             knn = new KNearestNeighbors(KValue);
             
-            knn.Learn(TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, MinVal, MaxVal, TotalClasses)).ToArray());
+            knn.Learn(TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray(), TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs)).ToArray());
 
             //knn.NumberOfInputs = 80;
             //knn.NumberOfOutputs = TotalClasses;
-            knn.NumberOfClasses = TotalClasses;
+            knn.NumberOfClasses = 2;
 
             //double Accuracy = 0;
             var ValidationSet = TrainingData.Skip((int)(TrainingData.Count * 0.8)).ToList();
@@ -138,7 +141,7 @@ namespace SharpGenetics.Predictor
 
             NetworkAccuracy = 1 - (Accuracy / ValidationSet.Count());*/
 
-            NetworkAccuracy = CalculateValidationClassifierAccuracy(ValidationSet, knn, RunMetrics.PreviousGenerationFitnesses.Min(), RunMetrics.PreviousGenerationFitnesses.Max(), TotalClasses);
+            NetworkAccuracy = CalculateValidationClassifierAccuracy(ValidationSet, knn);
 
             if (NetworkAccuracy >= MinimumAccuracy)
             {
@@ -162,7 +165,8 @@ namespace SharpGenetics.Predictor
 
         public bool PassesThresholdCheck(int Class)
         {
-            return (Class >= ThresholdClass);
+            return Class == 1;
+            //return (Class >= ThresholdClass);
         }
 
         public override List<double> Predict(List<double> Input)
@@ -173,7 +177,7 @@ namespace SharpGenetics.Predictor
                 Result = knn.Decide(Input.ToArray());
             }
             
-            return CreateOutputFromClass(Result, MinVal, MaxVal, TotalClasses);
+            return CreateOutputFromClass(Result);
         }
     }
 }

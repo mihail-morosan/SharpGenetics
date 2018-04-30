@@ -184,30 +184,26 @@ namespace SharpGenetics.Predictor
         }*/
 
 
-        public static int ClassifyOutputs(List<double> Output, double Min, double Max, int TotalClasses)
+        //public static int ClassifyOutputs(List<double> Output, double Min, double Max, int TotalClasses)
+        public int ClassifyOutputs(List<double> Output)
         {
             double Sum = Output.Sum();
-            if (Sum < Min)
+
+            if (Sum <= LowerPredThreshold)
                 return 0;
-            if (Sum >= Max)
-                return TotalClasses-1;
-            int Result = (int)(1 + ((Sum - Min) / (Max - Min)) * (TotalClasses - 1));
-            return Result;
+            else
+                return 1;
         }
 
-        public static List<double> CreateOutputFromClass(int Result, double Min, double Max, int TotalClasses)
+        public List<double> CreateOutputFromClass(int Result)
         {
             if(Result == 0)
             {
-                return new List<double>() { Min - 1 };
-            }
-
-            if(Result == TotalClasses - 1)
+                return new List<double>() { LowerPredThreshold - 1 };
+            } else
             {
-                return new List<double>() { Max + 1 };
+                return new List<double>() { LowerPredThreshold * 2 };
             }
-
-            return new List<double>() { Min + (Max - Min) * ((double)Result - 1 / (double)TotalClasses - 1) };
         }
 
         /*public static List<double> CreateOutputFromClass(int Result, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
@@ -244,31 +240,50 @@ namespace SharpGenetics.Predictor
             return accuracySquare;
         }
 
-        public double CalculateValidationClassifierAccuracy(List<InputOutputPair> ValidationSet, dynamic Classifier, double Min, double Max, int TotalClasses)
+        public double CalculateValidationClassifierAccuracy(List<InputOutputPair> ValidationSet, dynamic Classifier)
         //public double CalculateValidationClassifierAccuracy(List<InputOutputPair> ValidationSet, dynamic Classifier, double FirstQuart, double Median, double ThirdQuart, int TotalClasses)
         {
             try
             {
                 var InArray = ValidationSet.Select(e => e.Inputs.ToArray()).ToArray();
 
-                foreach(var In in InArray)
-                {
-                    Classifier.Compute(In);
-                }
-
                 int[] ValidationPredictionsInt = Classifier.Decide(InArray);
+                //int[] ValidationTruth = ValidationSet.Select(e => ClassifyOutputs(e.Outputs, Min, Max, Fitnesses, TotalClasses)).ToArray();
                 double[] ValidationPredictions = ValidationPredictionsInt.Select(e => (double)e).ToArray();
-                double[] ValidationTruth = ValidationSet.Select(e => ClassifyOutputs(e.Outputs, Min, Max, TotalClasses)).Select(e => (double)e).ToArray();
+                double[] ValidationTruth = ValidationSet.Select(e => ClassifyOutputs(e.Outputs)).Select(e => (double)e).ToArray();
 
-                double errorSquare = new SquareLoss(ValidationTruth).Loss(ValidationPredictions);
-                double accuracySquare = 1 - (Math.Sqrt(errorSquare) / TotalClasses);
+                /*double errorManual = 0;
+                for(int i = 0;i<ValidationSet.Count;i++)
+                {
+                    errorManual += Math.Abs(ValidationPredictions[i] - ValidationTruth[i]);
+                }*/
 
+                //double AbsLoss = new Accord.Math.Optimization.Losses.CategoryCrossEntropyLoss(ValidationTruth).Loss(ValidationPredictionsInt);
+                //double accuracySquare = 1 - (AbsLoss / ValidationSet.Count);
+                //double errorSquare = new SquareLoss(ValidationTruth).Loss(ValidationPredictions);
+                //double accuracySquare = 1 - (Math.Sqrt(errorSquare) / TotalClasses);
+                //double accuracySquare = 1 - (errorManual / ValidationSet.Count) / (TotalClasses-1);
+                double errorZeroOne = new ZeroOneLoss(ValidationTruth).Loss(ValidationPredictions);
+                double accuracySquare = 1 - errorZeroOne;
 
                 return accuracySquare;
             } catch(Exception e)
             {
                 return -1;
             }
+        }
+
+        public static double Percentile(IEnumerable<double> seq, double percentile)
+        {
+            var elements = seq.ToArray();
+            Array.Sort(elements);
+            double realIndex = percentile * (elements.Length - 1);
+            int index = (int)realIndex;
+            double frac = realIndex - index;
+            if (index + 1 < elements.Length)
+                return elements[index] * (1 - frac) + elements[index + 1] * frac;
+            else
+                return elements[index];
         }
     }
 

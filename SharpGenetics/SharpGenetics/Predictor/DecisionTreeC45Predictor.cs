@@ -39,17 +39,8 @@ namespace SharpGenetics.Predictor
         }
 
         [DataMember]
-        double MinVal = 0;
-        [DataMember]
-        double MaxVal = 0;
-
-        [DataMember]
-        [ImportantParameter("extra_Predictor_C45_ThresholdClass", "Threshold Class For Accepting Predictions", 0, 20, 2)]
-        public int ThresholdClass { get; set; }
-
-        [DataMember]
-        [ImportantParameter("extra_Predictor_C45_TotalClasses", "Number of Output Classes", 0, 20, 4)]
-        public int TotalClasses { get; set; }
+        [ImportantParameter("extra_Predictor_C45_ThresholdClass", "Threshold Percentile", 0, 1, 0.5)]
+        public double ThresholdClass { get; set; }
 
         public DecisionTreeC45Predictor(RunParameters Parameters, int RandomSeed)
         {
@@ -78,18 +69,14 @@ namespace SharpGenetics.Predictor
 
         public override void AfterGeneration(List<PopulationMember> Population, int Generation)
         {
-            var AllFitnesses = Population.Select(i => i.Fitness).ToArray();
+            var AllFitnesses = Population.Select(i => i.Fitness).ToList();
+            AllFitnesses.Sort();
 
-            LowerPredThreshold = CreateOutputFromClass(ThresholdClass, AllFitnesses.Min(), AllFitnesses.Max(), TotalClasses).Sum();
+            LowerPredThreshold = Percentile(AllFitnesses, ThresholdClass);
+            //LowerPredThreshold = CreateOutputFromClass(ThresholdClass, AllFitnesses).Sum();
             UpperPredThreshold = double.PositiveInfinity;
 
             base.AfterGeneration(Population, Generation);
-
-            lock (NetworkLock)
-            {
-                MinVal = AllFitnesses.Min();
-                MaxVal = AllFitnesses.Max();
-            }
         }
 
         DecisionTree GenerateBestTree(double[][] input, int[] output)
@@ -101,8 +88,8 @@ namespace SharpGenetics.Predictor
 
                 var bestTeacher = new C45Learning
                 {
-                    Join = bestJoin,
-                    MaxHeight = bestHeight,
+                    //Join = bestJoin,
+                    //MaxHeight = bestHeight,
                 };
 
                 return bestTeacher.Learn(input, output);
@@ -121,8 +108,10 @@ namespace SharpGenetics.Predictor
                 return;
             }
 
+            var PrevPop = RunMetrics.PreviousGenerationFitnesses.Sorted().ToList();
+
             double[][] input = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => e.Inputs.ToArray()).ToArray();
-            int[] output = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs, MinVal, MaxVal, TotalClasses)).ToArray();
+            int[] output = TrainingData.Take((int)(TrainingData.Count * 0.8)).Select(e => ClassifyOutputs(e.Outputs)).ToArray();
 
             Tree = GenerateBestTree(input, output);
 
@@ -131,19 +120,9 @@ namespace SharpGenetics.Predictor
                 return;
             }
             
-            double Accuracy = 0;
             var ValidationSet = TrainingData.Skip((int)(TrainingData.Count * 0.8)).ToList();
 
-            /*foreach (var In in ValidationSet)
-            {
-                int computedClass = Tree.Decide(In.Inputs.ToArray());
-                int origClass = ClassifyOutputs(In.Outputs, FirstQuart, Median, ThirdQuart, TotalClasses);
-
-                Accuracy += Math.Abs(computedClass - origClass) * (1.0 / (TotalClasses - 1));
-            }
-
-            NetworkAccuracy = 1 - (Accuracy / ValidationSet.Count()); */
-            NetworkAccuracy = CalculateValidationClassifierAccuracy(ValidationSet, Tree, RunMetrics.PreviousGenerationFitnesses.Min(), RunMetrics.PreviousGenerationFitnesses.Max(), TotalClasses);
+            NetworkAccuracy = CalculateValidationClassifierAccuracy(ValidationSet, Tree);
 
             if (NetworkAccuracy >= MinimumAccuracy)
             {
@@ -163,7 +142,7 @@ namespace SharpGenetics.Predictor
 
         public bool PassesThresholdCheck(int Class)
         {
-            return (Class >= ThresholdClass);
+            return (Class == 1);
         }
 
         public override List<double> Predict(List<double> Input)
@@ -174,7 +153,7 @@ namespace SharpGenetics.Predictor
                 Result = Tree.Decide(Input.ToArray());
             }
 
-            return CreateOutputFromClass(Result, MinVal, MaxVal, TotalClasses);
+            return CreateOutputFromClass(Result);
         }
     }
 }
