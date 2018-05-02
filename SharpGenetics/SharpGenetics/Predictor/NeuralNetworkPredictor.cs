@@ -32,12 +32,12 @@ namespace SharpGenetics.Predictor
         public int TrainingEpochsPerGeneration { get; set; }
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_LowerThreshold", "Lower Prediction Threshold (in percentile 0 to 1)", 0, 1, 0.5)]
-        public double LowerBoundForPredictionThreshold { get; set; }
+        [ImportantParameter("extra_Predictor_LowerThreshold", "Lower Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 0)]
+        public int LowerBoundForPredictionThreshold { get; set; }
 
         [DataMember]
-        [ImportantParameter("extra_Predictor_UpperThreshold", "Upper Prediction Threshold (in percentile 0 to 1)", 0, 1, 0.5)]
-        public double UpperBoundForPredictionThreshold { get; set; }
+        [ImportantParameter("extra_Predictor_UpperThreshold", "Upper Prediction Threshold (1 for 1st Quart, 2 for Median, 3 for 3rd Quart, 0 for none)", 0, 3, 0)]
+        public int UpperBoundForPredictionThreshold { get; set; }
 
         [DataMember]
         [ImportantParameter("extra_Predictor_NN_ChanceToEvaluateAnyway", "Chance inverse to network accuracy to evaluate predicted individual anyway", 0, 1, 1)]
@@ -200,48 +200,45 @@ namespace SharpGenetics.Predictor
 
             if (NetworkAccuracy >= MinimumAccuracy)
             {
-                if (LowerBoundForPredictionThreshold == -1)
-                    LowerPredThreshold = double.PositiveInfinity;
-                else 
-                    LowerPredThreshold = Percentile(RunMetrics.PreviousGenerationFitnesses, LowerBoundForPredictionThreshold);
-                /*switch (LowerBoundForPredictionThreshold)
+                switch (LowerBoundForPredictionThreshold)
                 {
                     case 1:
                         LowerPredThreshold = RunMetrics.FirstQuartileOfFitnesses.LastOrDefault().Value;
+                        //LowerPredThreshold = Percentile(RunMetrics.PreviousGenerationFitnesses, 0.4);
                         break;
                     case 2:
                         LowerPredThreshold = RunMetrics.MedianOfFitnesses.LastOrDefault().Value;
                         break;
                     case 3:
                         LowerPredThreshold = RunMetrics.ThirdQuartileOfFitnesses.LastOrDefault().Value;
+                        //LowerPredThreshold = Percentile(RunMetrics.PreviousGenerationFitnesses, 0.6);
                         break;
                     case 0:
                         LowerPredThreshold = double.PositiveInfinity;
                         break;
                     default:
                         break;
-                }*/
-                if (UpperBoundForPredictionThreshold == -1)
-                    UpperPredThreshold = double.PositiveInfinity;
-                else
-                    UpperPredThreshold = Percentile(RunMetrics.PreviousGenerationFitnesses, UpperBoundForPredictionThreshold);
-                /*switch (UpperBoundForPredictionThreshold)
+                }
+
+                switch (UpperBoundForPredictionThreshold)
                 {
                     case 1:
                         UpperPredThreshold = RunMetrics.FirstQuartileOfFitnesses.LastOrDefault().Value;
+                        //UpperPredThreshold = Percentile(RunMetrics.PreviousGenerationFitnesses, 0.4);
                         break;
                     case 2:
                         UpperPredThreshold = RunMetrics.MedianOfFitnesses.LastOrDefault().Value;
                         break;
                     case 3:
                         UpperPredThreshold = RunMetrics.ThirdQuartileOfFitnesses.LastOrDefault().Value;
+                        //UpperPredThreshold = Percentile(RunMetrics.PreviousGenerationFitnesses, 0.6);
                         break;
                     case 0:
                         UpperPredThreshold = double.PositiveInfinity;
                         break;
                     default:
                         break;
-                }*/
+                }
 
                 var Rand = new CRandom(RandomSeed + Generation);
 
